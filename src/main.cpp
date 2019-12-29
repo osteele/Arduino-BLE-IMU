@@ -12,6 +12,7 @@ const char IMU_SERVICE_UUID[] = "509B8001-EBE1-4AA5-BC51-11004B78D5CB";
 const char IMU_QUAT_CHAR_UUID[] = "509B8002-EBE1-4AA5-BC51-11004B78D5CB";
 
 const bool SEND_UART_TX_HEARTBEAT = false;
+const int TX_DELAY = 900 / 60;  // 60 fps, with headroom
 
 BLEServer *bleServer = NULL;
 BLECharacteristic *txChar;
@@ -91,10 +92,12 @@ static void encode(uint8_t *dst, const float *src) {
 }
 
 void loop() {
-  if (deviceConnected && millis() > nextTxTimeMs) {
+  unsigned long now = millis();
+  // This test assumes the device is rebooted in less than 49 days
+  if (deviceConnected && now > nextTxTimeMs) {
     if (SEND_UART_TX_HEARTBEAT) {
       static char buffer[10];
-      int len = snprintf(buffer, sizeof buffer, "%ld\n", millis());
+      int len = snprintf(buffer, sizeof buffer, "%ld\n", now);
       if (0 <= len && len <= sizeof buffer) {
         txChar->setValue((uint8_t *)buffer, len);
         txChar->notify();
@@ -103,7 +106,7 @@ void loop() {
       }
     }
 
-    // const float t = millis() / 100.0;
+    // const float t = now / 100.0;
     const float quat[] = {1, 2, 1000, 2000000};
     uint8_t buf[sizeof quat];
     for (int i = 0; i < sizeof quat; i += sizeof *quat) {
@@ -115,7 +118,7 @@ void loop() {
     // imuQuatChar->setValue((uint8_t *)"ping", 4);
     imuQuatChar->notify();
 
-    nextTxTimeMs = millis() + 1000;
+    nextTxTimeMs = now + TX_DELAY;
   }
 
   if (!deviceConnected && prevDeviceConnected) {
