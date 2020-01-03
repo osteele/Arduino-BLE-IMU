@@ -3,7 +3,9 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <HardwareSerial.h>
+#include <cmath>
 #include "bt_imu_service.h"
+#include "utils.h"
 
 const char BLE_ADV_NAME[] = "NYUSHIMA IMU";
 
@@ -13,6 +15,8 @@ const char NF_UART_TX_CHAR_UUID[] = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
 
 const bool SEND_UART_TX_HEARTBEAT = false;
 const int TX_DELAY = 900 / 60;  // 60 fps, with headroom
+
+const float pi = std::acos(-1);
 
 BLEServer *bleServer = NULL;
 BLECharacteristic *txChar;
@@ -99,8 +103,12 @@ void loop() {
       }
     }
 
-    // const float t = now / 100.0;
-    const float quat[] = {1, 2, 1000, 2000000};
+    const float s = now / 1000.0;
+    const float euler[] = {static_cast<float>(pi / 10 * cos(1.2 * s)),
+                           static_cast<float>(pi / 10 * cos(1.4 * s)),
+                           static_cast<float>(fmod(s, 2 * pi))};
+    float quat[4];
+    euler2quat(euler, quat);
     imuQuatChar->setValue((uint8_t *)quat, sizeof quat);
     imuQuatChar->notify();
 
