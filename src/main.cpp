@@ -112,7 +112,14 @@ void loop() {
                            static_cast<float>(fmod(s, 2 * pi))};
     float quat[4];
     euler2quat(euler, quat);
-    imuQuatChar->setValue((uint8_t *)quat, sizeof quat);
+    uint8_t data[6 + sizeof quat] = {1,
+                                     0,
+                                     static_cast<uint8_t>(now),
+                                     static_cast<uint8_t>(now >> 8),
+                                     0x20,
+                                     sizeof quat};
+    memcpy(&data[6], quat, sizeof quat);
+    imuQuatChar->setValue(static_cast<uint8_t *>(data), sizeof data);
     imuQuatChar->notify();
 
     nextTxTimeMs = now + TX_DELAY;
