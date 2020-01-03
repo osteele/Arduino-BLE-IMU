@@ -1,4 +1,5 @@
 #include <BLE2902.h>
+#include <BLEAdvertising.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
@@ -7,7 +8,7 @@
 #include "bt_imu_service.h"
 #include "utils.h"
 
-const char BLE_ADV_NAME[] = "NYUSHIMA IMU";
+const char BLE_ADV_NAME[] = "ESP32 IMU";
 
 const char NF_UART_SERVICE_UUID[] = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 const char NF_UART_RX_CHAR_UUID[] = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
@@ -49,12 +50,11 @@ class UARTRxCallbacks : public BLECharacteristicCallbacks {
       if (value[value.length() - 1] != '\n') {
         Serial.println();
       }
-      if (value == "ping\n") {
+      if (value == "ping" || value == "ping\n") {
         Serial.write("Tx: pong\n");
         static uint8_t data[] = "pong\n";
         txChar->setValue(data, sizeof data - 1);
         txChar->notify();
-        delay(500);
       }
     }
   }
@@ -85,7 +85,10 @@ void setup() {
   Serial.println("Starting BLE...");
   uartService->start();
   imuService->start();
-  bleServer->getAdvertising()->start();
+
+  BLEAdvertising *adv = bleServer->getAdvertising();
+  adv->addServiceUUID(BT_IMU_SERVICE_UUID);
+  adv->start();
 }
 
 void loop() {
