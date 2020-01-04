@@ -1,6 +1,12 @@
+#include <stdint.h>
+#include <string.h>
+#include <cassert>
+#include <vector>
+
 const char BLE_IMU_SERVICE_UUID[] = "509B8001-EBE1-4AA5-BC51-11004B78D5CB";
 const char BLE_IMU_SENSOR_CHAR_UUID[] = "509B8002-EBE1-4AA5-BC51-11004B78D5CB";
-const char BLE_IMU_DEVICE_INFO_CHAR_UUID[] = "509B8003-EBE1-4AA5-BC51-11004B78D5CB";
+const char BLE_IMU_DEVICE_INFO_CHAR_UUID[] =
+    "509B8003-EBE1-4AA5-BC51-11004B78D5CB";
 
 const uint8_t BLE_IMU_MESSAGE_VERSION = 1;
 
