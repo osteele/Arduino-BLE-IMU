@@ -24,10 +24,10 @@ BLECharacteristic *txChar;
 BLECharacteristic *rxChar;
 BLECharacteristic *imuQuatChar;
 
-int deviceConnectedCount = 0;
-bool prevDeviceConnected = false;
+static int deviceConnectedCount = 0;
+static bool prevDeviceConnected = false;
 
-unsigned long nextTxTimeMs = 0;
+static unsigned long nextTxTimeMs = 0;
 
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *server) {
@@ -67,7 +67,7 @@ void setup() {
   bleServer = BLEDevice::createServer();
   bleServer->setCallbacks(new MyServerCallbacks());
 
-  // UART service and charadcteristics
+  // UART service and characteristics
   BLEService *uartService = bleServer->createService(NF_UART_SERVICE_UUID);
   txChar = uartService->createCharacteristic(
       NF_UART_TX_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
@@ -76,10 +76,10 @@ void setup() {
                                              BLECharacteristic::PROPERTY_WRITE);
   rxChar->setCallbacks(new UARTRxCallbacks());
 
-  // IMU service and charadcteristics
-  BLEService *imuService = bleServer->createService(BT_IMU_SERVICE_UUID);
+  // IMU service and characteristics
+  BLEService *imuService = bleServer->createService(BLE_IMU_SERVICE_UUID);
   imuQuatChar = imuService->createCharacteristic(
-      BT_IMU_QUAT_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+      BLE_IMU_QUAT_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
   imuQuatChar->addDescriptor(new BLE2902());
 
   Serial.println("Starting BLE...");
@@ -87,7 +87,7 @@ void setup() {
   imuService->start();
 
   BLEAdvertising *adv = bleServer->getAdvertising();
-  adv->addServiceUUID(BT_IMU_SERVICE_UUID);
+  adv->addServiceUUID(BLE_IMU_SERVICE_UUID);
   adv->start();
 }
 
@@ -112,14 +112,13 @@ void loop() {
                            static_cast<float>(fmod(s, 2 * pi))};
     float quat[4];
     euler2quat(euler, quat);
-    uint8_t data[6 + sizeof quat] = {1,
-                                     0,
-                                     static_cast<uint8_t>(now),
-                                     static_cast<uint8_t>(now >> 8),
-                                     0x20,
-                                     sizeof quat};
-    memcpy(&data[6], quat, sizeof quat);
-    imuQuatChar->setValue(static_cast<uint8_t *>(data), sizeof data);
+    BLE_IMUMessage value(now);
+    value.setQuaternion(quat);
+    std::vector<uint8_t> payload = value.getPayload();
+    // char line[256];
+    // sprintf(line, "Sending %d-byte line", payload.size());
+    // Serial.println(line);
+    imuQuatChar->setValue(payload.data(), payload.size());
     imuQuatChar->notify();
 
     nextTxTimeMs = now + TX_DELAY;
