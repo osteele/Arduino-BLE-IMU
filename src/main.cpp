@@ -4,6 +4,7 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <HardwareSerial.h>
+#include <WiFi.h>
 #include "BNO055_Dummy.h"
 #include "bt_imu_service.h"
 
@@ -22,7 +23,7 @@ static const int TX_DELAY = 900 / 60;  // 60 fps, with headroom
 static BLEServer *bleServer = NULL;
 static BLECharacteristic *txChar;
 static BLECharacteristic *rxChar;
-static BLECharacteristic *imuQuatChar;
+static BLECharacteristic *imuSensorValueChar;
 
 static int deviceConnectedCount = 0;
 static bool prevDeviceConnected = false;
@@ -80,9 +81,18 @@ void setup() {
 
   // IMU service and characteristics
   BLEService *imuService = bleServer->createService(BLE_IMU_SERVICE_UUID);
-  imuQuatChar = imuService->createCharacteristic(
-      BLE_IMU_QUAT_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
-  imuQuatChar->addDescriptor(new BLE2902());
+  imuSensorValueChar = imuService->createCharacteristic(
+      BLE_IMU_SENSOR_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+  imuSensorValueChar->addDescriptor(new BLE2902());
+  auto imuDeviceInfoChar = imuService->createCharacteristic(
+      BLE_IMU_DEVICE_INFO_CHAR_UUID, BLECharacteristic::PROPERTY_READ);
+  imuDeviceInfoChar->addDescriptor(new BLE2902());
+
+  byte macAddress[6];
+  WiFi.macAddress(macAddress);
+  uint8_t macString[2 * sizeof macAddress];
+  BLEUtils().buildHexData(macString, macAddress, 6);
+  imuDeviceInfoChar->setValue(macString, sizeof macString);
 
   Serial.println("Starting BLE...");
   uartService->start();
@@ -113,8 +123,8 @@ void loop() {
     value.setQuaternion(q.w(), q.x(), q.y(), q.z());
 
     std::vector<uint8_t> payload = value.getPayload();
-    imuQuatChar->setValue(payload.data(), payload.size());
-    imuQuatChar->notify();
+    imuSensorValueChar->setValue(payload.data(), payload.size());
+    imuSensorValueChar->notify();
 
     nextTxTimeMs = now + TX_DELAY;
   }
