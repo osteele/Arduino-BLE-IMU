@@ -4,30 +4,32 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <HardwareSerial.h>
-#include <cmath>
+#include "BNO055_Dummy.h"
 #include "bt_imu_service.h"
-#include "utils.h"
 
-const char BLE_ADV_NAME[] = "ESP32 IMU";
+static const char BLE_ADV_NAME[] = "ESP32 IMU";
 
-const char NF_UART_SERVICE_UUID[] = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
-const char NF_UART_RX_CHAR_UUID[] = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
-const char NF_UART_TX_CHAR_UUID[] = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
+static const char NF_UART_SERVICE_UUID[] =
+    "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
+static const char NF_UART_RX_CHAR_UUID[] =
+    "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
+static const char NF_UART_TX_CHAR_UUID[] =
+    "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
 
-const bool SEND_UART_TX_HEARTBEAT = false;
-const int TX_DELAY = 900 / 60;  // 60 fps, with headroom
+static const bool SEND_UART_TX_HEARTBEAT = false;
+static const int TX_DELAY = 900 / 60;  // 60 fps, with headroom
 
-const float pi = std::acos(-1);
-
-BLEServer *bleServer = NULL;
-BLECharacteristic *txChar;
-BLECharacteristic *rxChar;
-BLECharacteristic *imuQuatChar;
+static BLEServer *bleServer = NULL;
+static BLECharacteristic *txChar;
+static BLECharacteristic *rxChar;
+static BLECharacteristic *imuQuatChar;
 
 static int deviceConnectedCount = 0;
 static bool prevDeviceConnected = false;
 
 static unsigned long nextTxTimeMs = 0;
+
+static auto bno = BNO055_Dummy();
 
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *server) {
@@ -106,18 +108,11 @@ void loop() {
       }
     }
 
-    const float s = now / 1000.0;
-    const float euler[] = {static_cast<float>(pi / 10 * cos(1.2 * s)),
-                           static_cast<float>(pi / 10 * cos(1.4 * s)),
-                           static_cast<float>(fmod(s, 2 * pi))};
-    float quat[4];
-    euler2quat(euler, quat);
+    auto q = bno.getQuat();
     BLE_IMUMessage value(now);
-    value.setQuaternion(quat);
+    value.setQuaternion(q.w(), q.x(), q.y(), q.z());
+
     std::vector<uint8_t> payload = value.getPayload();
-    // char line[256];
-    // sprintf(line, "Sending %d-byte line", payload.size());
-    // Serial.println(line);
     imuQuatChar->setValue(payload.data(), payload.size());
     imuQuatChar->notify();
 

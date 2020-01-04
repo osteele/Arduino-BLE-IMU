@@ -23,6 +23,21 @@ class BLE_IMUMessage {
     m_flags |= BLE_IMU_QUATERNION_FLAG;
   }
 
+  void setQuaternion(double quat[4]) {
+    float q[4] = {
+        static_cast<float>(quat[0]),
+        static_cast<float>(quat[1]),
+        static_cast<float>(quat[2]),
+        static_cast<float>(quat[3]),
+    };
+    setQuaternion(q);
+  }
+
+  void setQuaternion(double w, double x, double y, double z) {
+    double q[] = {w, x, y, z};
+    setQuaternion(q);
+  }
+
   std::vector<uint8_t> getPayload() {
     uint8_t data[64] = {
         BLE_IMU_MESSAGE_VERSION,
