@@ -5,8 +5,8 @@
 #include <BLEUtils.h>
 #include <HardwareSerial.h>
 #include <WiFi.h>
+#include "BLE_IMU_Service.h"
 #include "BNO055_Dummy.h"
-#include "bt_imu_service.h"
 
 static const char BLE_ADV_NAME[] = "ESP32 IMU";
 
