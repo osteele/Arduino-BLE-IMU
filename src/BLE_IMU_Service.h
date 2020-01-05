@@ -1,5 +1,5 @@
+#include <Adafruit_BNO055.h>
 #include <stdint.h>
-#include <string.h>
 #include <cassert>
 #include <vector>
 #include "BLE_Service_Handler.h"
@@ -74,8 +74,8 @@ static const int TX_DELAY = (1000 - 10) / 60;  // 60 fps, with headroom
 
 class BLE_IMUServiceHandler : public BLEServiceHandler {
  public:
-  BLE_IMUServiceHandler(BLEServer *bleServer)
-      : BLEServiceHandler(bleServer, BLE_IMU_SERVICE_UUID) {
+  BLE_IMUServiceHandler(BLEServer *bleServer, BNO055 &sensor)
+      : BLEServiceHandler(bleServer, BLE_IMU_SERVICE_UUID), bno_(sensor) {
     imuSensorValueChar_ = bleService_->createCharacteristic(
         BLE_IMU_SENSOR_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
     imuSensorValueChar_->addDescriptor(new BLE2902());
@@ -117,7 +117,7 @@ class BLE_IMUServiceHandler : public BLEServiceHandler {
  private:
   BLECharacteristic *imuSensorValueChar_;
   BLECharacteristic *imuCalibrationChar_;
-  BNO055_Dummy bno_;
+  BNO055 &bno_;
   std::array<uint8_t, 4> calibration_ = {{0, 0, 0, 0}};
   unsigned long nextTxTimeMs_ = 0;
 

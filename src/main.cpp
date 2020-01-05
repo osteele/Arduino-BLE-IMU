@@ -4,9 +4,11 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <HardwareSerial.h>
+
 #include "BLE_IMU_Service.h"
 #include "BLE_MAC_Address_Service.h"
 #include "BLE_UART_Service.h"
+#include "BNO055_Dummy.h"
 
 static const char BLE_ADV_NAME[] = "ESP32 IMU";
 
@@ -70,10 +72,15 @@ void setup() {
   // Serial.begin(115200);
   Serial.begin(9600);
 
+  Wire.beginTransmission(0x28);
+  byte error = Wire.endTransmission();
+  BNO055 *bno = error == 0 ? (BNO055 *)new BNO055Wrapper(*new Adafruit_BNO055())
+                           : (BNO055 *)new BNO055Dummy();
+
   BLEDevice::init(BLE_ADV_NAME);
   bleServiceManager = new BLEServiceManager();
   bleServiceManager->addServiceHandler(
-      new BLE_IMUServiceHandler(bleServiceManager->bleServer), true);
+      new BLE_IMUServiceHandler(bleServiceManager->bleServer, *bno), true);
   bleServiceManager->addServiceHandler(
       new BLE_MACAddressServiceHandler(bleServiceManager->bleServer));
   bleServiceManager->addServiceHandler(

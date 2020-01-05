@@ -1,23 +1,35 @@
+#pragma once
+#include <Adafruit_BNO055.h>
 #include <algorithm>
 #include <cmath>
 #include "utils.h"
 
-class Quaternion {
+class BNO055 {
  public:
-  Quaternion(double w, double x, double y, double z)
-      : _w(w), _x(x), _y(y), _z(z) {}
-  const double& w() const { return _w; }
-  const double& x() const { return _x; }
-  const double& y() const { return _y; }
-  const double& z() const { return _z; }
-
- private:
-  double _w, _x, _y, _z;
+  // virtual void setExtCrystalUse(bool);
+  virtual void getCalibration(uint8_t* system, uint8_t* gyro, uint8_t* accel,
+                              uint8_t* mag);
+  virtual imu::Quaternion getQuat();
 };
 
-class BNO055_Dummy {
+class BNO055Wrapper : public BNO055 {
  public:
-  BNO055_Dummy() : createdAt_(millis()) {}
+  BNO055Wrapper(Adafruit_BNO055& bno) : _base(bno) {}
+  // virtual setExtCrystalUse(bool flag) : {}
+  void getCalibration(uint8_t* system, uint8_t* gyro, uint8_t* accel,
+                      uint8_t* mag) {
+    _base.getCalibration(system, gyro, accel, mag);
+  };
+
+  imu::Quaternion getQuat() { return _base.getQuat(); }
+
+ private:
+  Adafruit_BNO055 _base;
+};
+
+class BNO055Dummy : public BNO055 {
+ public:
+  BNO055Dummy() : createdAt_(millis()) {}
   bool begin() { return true; }
   void setExtCrystalUse(bool) {}
 
@@ -30,7 +42,7 @@ class BNO055_Dummy {
     *mag = c;
   }
 
-  Quaternion getQuat() {
+  imu::Quaternion getQuat() {
     unsigned long now = millis();
     static const float pi = std::acos(-1);
     const float s = now / 1000.0;
@@ -39,7 +51,7 @@ class BNO055_Dummy {
                            static_cast<float>(fmod(s, 2 * pi))};
     float quat[4];
     euler2quat(euler, quat);
-    return Quaternion(
+    return imu::Quaternion(
         static_cast<double>(quat[0]), static_cast<double>(quat[1]),
         static_cast<double>(quat[2]), static_cast<double>(quat[3]));
   }
