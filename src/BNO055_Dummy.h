@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include "utils.h"
 
@@ -16,8 +17,18 @@ class Quaternion {
 
 class BNO055_Dummy {
  public:
+  BNO055_Dummy() : createdAt_(millis()) {}
   bool begin() { return true; }
   void setExtCrystalUse(bool) {}
+
+  void getCalibration(uint8_t* system, uint8_t* gyro, uint8_t* accel,
+                      uint8_t* mag) {
+    uint8_t c = std::min(3, static_cast<int>((millis() - createdAt_) / 1000));
+    *system = c;
+    *gyro = c;
+    *accel = c;
+    *mag = c;
+  }
 
   Quaternion getQuat() {
     unsigned long now = millis();
@@ -32,4 +43,7 @@ class BNO055_Dummy {
         static_cast<double>(quat[0]), static_cast<double>(quat[1]),
         static_cast<double>(quat[2]), static_cast<double>(quat[3]));
   }
+
+ private:
+  unsigned long createdAt_;
 };
