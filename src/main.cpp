@@ -7,18 +7,10 @@
 #include <WiFi.h>
 #include "BLE_IMU_Service.h"
 #include "BLE_UART_Service.h"
-#include "BNO055_Dummy.h"
 
 static const char BLE_ADV_NAME[] = "ESP32 IMU";
 
-static const int TX_DELAY = (1000 - 10) / 60;  // 60 fps, with headroom
-
 static BLEServer *bleServer = NULL;
-static BLECharacteristic *imuSensorValueChar;
-
-static unsigned long nextTxTimeMs = 0;
-
-static auto bno = BNO055_Dummy();
 
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *server) {
@@ -47,6 +39,7 @@ class MyServerCallbacks : public BLEServerCallbacks {
 
 static MyServerCallbacks *myBLEServer;
 static UARTServiceHandler *uartServiceHandler;
+static IMUServiceHandler *imuServiceHandler;
 
 void setup() {
   // Serial.begin(115200);
@@ -57,25 +50,11 @@ void setup() {
   myBLEServer = new MyServerCallbacks();
   bleServer->setCallbacks(myBLEServer);
   uartServiceHandler = new UARTServiceHandler(bleServer);
-
-  // IMU service and characteristics
-  BLEService *imuService = bleServer->createService(BLE_IMU_SERVICE_UUID);
-  imuSensorValueChar = imuService->createCharacteristic(
-      BLE_IMU_SENSOR_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
-  imuSensorValueChar->addDescriptor(new BLE2902());
-  auto *imuDeviceInfoChar = imuService->createCharacteristic(
-      BLE_IMU_DEVICE_INFO_CHAR_UUID, BLECharacteristic::PROPERTY_READ);
-  imuDeviceInfoChar->addDescriptor(new BLE2902());
-
-  byte macAddress[6];
-  WiFi.macAddress(macAddress);
-  uint8_t macString[2 * sizeof macAddress];
-  BLEUtils().buildHexData(macString, macAddress, 6);
-  imuDeviceInfoChar->setValue(macString, sizeof macString);
+  imuServiceHandler = new IMUServiceHandler(bleServer);
 
   Serial.println("Starting BLE...");
   uartServiceHandler->start();
-  imuService->start();
+  imuServiceHandler->start();
 
   BLEAdvertising *adv = bleServer->getAdvertising();
   adv->addServiceUUID(BLE_IMU_SERVICE_UUID);
@@ -85,19 +64,7 @@ void setup() {
 void loop() {
   if (myBLEServer->connectionCount > 0) {
     uartServiceHandler->tick();
-  }
-  unsigned long now = millis();
-  // Doesn't account for time wraparound
-  if (myBLEServer->connectionCount > 0 && now > nextTxTimeMs) {
-    auto q = bno.getQuat();
-    BLE_IMUMessage value(now);
-    value.setQuaternion(q.w(), q.x(), q.y(), q.z());
-
-    std::vector<uint8_t> payload = value.getPayload();
-    imuSensorValueChar->setValue(payload.data(), payload.size());
-    imuSensorValueChar->notify();
-
-    nextTxTimeMs = now + TX_DELAY;
+    imuServiceHandler->tick();
   }
   myBLEServer->tick();
 }

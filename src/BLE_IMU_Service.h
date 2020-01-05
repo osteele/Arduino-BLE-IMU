@@ -2,6 +2,7 @@
 #include <string.h>
 #include <cassert>
 #include <vector>
+#include "BNO055_Dummy.h"
 
 const char BLE_IMU_SERVICE_UUID[] = "509B8001-EBE1-4AA5-BC51-11004B78D5CB";
 const char BLE_IMU_SENSOR_CHAR_UUID[] = "509B8002-EBE1-4AA5-BC51-11004B78D5CB";
@@ -66,4 +67,49 @@ class BLE_IMUMessage {
   uint8_t m_flags = 0;
   unsigned long m_timestamp;
   float m_quat[4];
+};
+
+static const int TX_DELAY = (1000 - 10) / 60;  // 60 fps, with headroom
+
+class IMUServiceHandler {
+ public:
+  IMUServiceHandler(BLEServer *bleServer) {
+    imuService = bleServer->createService(BLE_IMU_SERVICE_UUID);
+    imuSensorValueChar = imuService->createCharacteristic(
+        BLE_IMU_SENSOR_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+    imuSensorValueChar->addDescriptor(new BLE2902());
+    auto *imuDeviceInfoChar = imuService->createCharacteristic(
+        BLE_IMU_DEVICE_INFO_CHAR_UUID, BLECharacteristic::PROPERTY_READ);
+    imuDeviceInfoChar->addDescriptor(new BLE2902());
+
+    byte macAddress[6];
+    WiFi.macAddress(macAddress);
+    uint8_t macString[2 * sizeof macAddress + 1];
+    BLEUtils().buildHexData(macString, macAddress, 6);
+    imuDeviceInfoChar->setValue(macString, 2 * sizeof macAddress);
+  }
+
+  void start() { imuService->start(); }
+
+  void tick() {
+    unsigned long now = millis();
+    // Doesn't account for time wraparound
+    if (now > nextTxTimeMs) {
+      auto q = bno.getQuat();
+      BLE_IMUMessage value(now);
+      value.setQuaternion(q.w(), q.x(), q.y(), q.z());
+
+      std::vector<uint8_t> payload = value.getPayload();
+      imuSensorValueChar->setValue(payload.data(), payload.size());
+      imuSensorValueChar->notify();
+
+      nextTxTimeMs = now + TX_DELAY;
+    }
+  }
+
+ private:
+  BNO055_Dummy bno;
+  BLEService *imuService;
+  BLECharacteristic *imuSensorValueChar;
+  unsigned long nextTxTimeMs = 0;
 };
