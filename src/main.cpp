@@ -16,21 +16,22 @@ class BLEServiceManager : public BLEServerCallbacks {
 
   BLEServiceManager() : bleServer(BLEDevice::createServer()) {
     bleServer->setCallbacks(this);
+    adv_ = bleServer->getAdvertising();
   }
 
-  void addServiceHandler(BLEServiceHandler *handler) {
+  void addServiceHandler(BLEServiceHandler *handler, bool advertised = false) {
     serviceHandlers_.push_back(handler);
+    if (advertised) {
+      Serial.println("advertised");
+      Serial.println(handler->uuid.c_str());
+      adv_->addServiceUUID(BLE_IMU_SERVICE_UUID);
+    }
   }
 
   void start() {
     std::for_each(serviceHandlers_.begin(), serviceHandlers_.end(),
                   std::mem_fun(&BLEServiceHandler::start));
-  }
-
-  void advertise() {
-    BLEAdvertising *adv = bleServer->getAdvertising();
-    adv->addServiceUUID(BLE_IMU_SERVICE_UUID);
-    adv->start();
+    adv_->start();
   }
 
   void tick() {
@@ -47,6 +48,7 @@ class BLEServiceManager : public BLEServerCallbacks {
 
  private:
   std::vector<BLEServiceHandler *> serviceHandlers_;
+  BLEAdvertising *adv_;
   int connectionCount_ = 0;
   bool prevDeviceConnected_ = false;
 
@@ -71,7 +73,7 @@ void setup() {
   BLEDevice::init(BLE_ADV_NAME);
   bleServiceManager = new BLEServiceManager();
   bleServiceManager->addServiceHandler(
-      new BLE_IMUServiceHandler(bleServiceManager->bleServer));
+      new BLE_IMUServiceHandler(bleServiceManager->bleServer), true);
   bleServiceManager->addServiceHandler(
       new BLE_MACAddressServiceHandler(bleServiceManager->bleServer));
   bleServiceManager->addServiceHandler(
@@ -79,7 +81,6 @@ void setup() {
 
   Serial.println("Starting BLE...");
   bleServiceManager->start();
-  bleServiceManager->advertise();
 }
 
 void loop() { bleServiceManager->tick(); }

@@ -4,8 +4,9 @@
 
 class BLEServiceHandler {
  public:
+  std::string uuid;
   BLEServiceHandler(BLEServer *bleServer, const char *uuid)
-      : bleService_(bleServer->createService(uuid)) {}
+      : uuid(uuid), bleService_(bleServer->createService(uuid)) {}
 
   virtual void start() { bleService_->start(); }
 
