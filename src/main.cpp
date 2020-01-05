@@ -10,17 +10,27 @@
 
 static const char BLE_ADV_NAME[] = "ESP32 IMU";
 
-static BLEServer *bleServer = NULL;
-
 class BLEServiceManager : public BLEServerCallbacks {
  public:
+  BLEServer *bleServer;
+
+  BLEServiceManager() : bleServer(BLEDevice::createServer()) {
+    bleServer->setCallbacks(this);
+  }
+
   void addServiceHandler(BLEServiceHandler *handler) {
     serviceHandlers_.push_back(handler);
   }
 
-  void startServiceHandlers() {
+  void start() {
     std::for_each(serviceHandlers_.begin(), serviceHandlers_.end(),
                   std::mem_fun(&BLEServiceHandler::start));
+  }
+
+  void advertise() {
+    BLEAdvertising *adv = bleServer->getAdvertising();
+    adv->addServiceUUID(BLE_IMU_SERVICE_UUID);
+    adv->start();
   }
 
   void tick() {
@@ -52,27 +62,24 @@ class BLEServiceManager : public BLEServerCallbacks {
   }
 };
 
-static BLEServiceManager *myBLEServer;
+static BLEServiceManager *bleServiceManager;
 
 void setup() {
   // Serial.begin(115200);
   Serial.begin(9600);
 
   BLEDevice::init(BLE_ADV_NAME);
-  bleServer = BLEDevice::createServer();
-  myBLEServer = new BLEServiceManager();
-  bleServer->setCallbacks(myBLEServer);
-
-  myBLEServer->addServiceHandler(new BLE_IMUServiceHandler(bleServer));
-  myBLEServer->addServiceHandler(new BLE_MACAddressServiceHandler(bleServer));
-  myBLEServer->addServiceHandler(new BLE_UARTServiceHandler(bleServer));
+  bleServiceManager = new BLEServiceManager();
+  bleServiceManager->addServiceHandler(
+      new BLE_IMUServiceHandler(bleServiceManager->bleServer));
+  bleServiceManager->addServiceHandler(
+      new BLE_MACAddressServiceHandler(bleServiceManager->bleServer));
+  bleServiceManager->addServiceHandler(
+      new BLE_UARTServiceHandler(bleServiceManager->bleServer));
 
   Serial.println("Starting BLE...");
-  myBLEServer->startServiceHandlers();
-
-  BLEAdvertising *adv = bleServer->getAdvertising();
-  adv->addServiceUUID(BLE_IMU_SERVICE_UUID);
-  adv->start();
+  bleServiceManager->start();
+  bleServiceManager->advertise();
 }
 
-void loop() { myBLEServer->tick(); }
+void loop() { bleServiceManager->tick(); }
