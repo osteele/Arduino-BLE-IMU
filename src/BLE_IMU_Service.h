@@ -2,6 +2,7 @@
 #include <string.h>
 #include <cassert>
 #include <vector>
+#include "BLE_Service_Handler.h"
 #include "BNO055_Dummy.h"
 
 const char BLE_IMU_SERVICE_UUID[] = "509B0001-EBE1-4AA5-BC51-11004B78D5CB";
@@ -71,11 +72,10 @@ class BLE_IMUMessage {
 
 static const int TX_DELAY = (1000 - 10) / 60;  // 60 fps, with headroom
 
-class BLE_IMUServiceHandler {
+class BLE_IMUServiceHandler : public BLEServiceHandler {
  public:
-  BLE_IMUServiceHandler(BLEServer *bleServer) {
-    bleService_ = bleServer->createService(BLE_IMU_SERVICE_UUID);
-
+  BLE_IMUServiceHandler(BLEServer *bleServer)
+      : BLEServiceHandler(bleServer, BLE_IMU_SERVICE_UUID) {
     imuSensorValueChar_ = bleService_->createCharacteristic(
         BLE_IMU_SENSOR_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
     imuSensorValueChar_->addDescriptor(new BLE2902());
@@ -87,7 +87,7 @@ class BLE_IMUServiceHandler {
   }
 
   void start() {
-    bleService_->start();
+    BLEServiceHandler::start();
     setCalibrationValue();
   }
 
@@ -115,7 +115,6 @@ class BLE_IMUServiceHandler {
   }
 
  private:
-  BLEService *bleService_;
   BLECharacteristic *imuSensorValueChar_;
   BLECharacteristic *imuCalibrationChar_;
   BNO055_Dummy bno_;
