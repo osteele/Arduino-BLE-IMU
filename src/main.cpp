@@ -4,8 +4,8 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <HardwareSerial.h>
-#include <WiFi.h>
 #include "BLE_IMU_Service.h"
+#include "BLE_MAC_Address_Service.h"
 #include "BLE_UART_Service.h"
 
 static const char BLE_ADV_NAME[] = "ESP32 IMU";
@@ -40,6 +40,7 @@ class MyServerCallbacks : public BLEServerCallbacks {
 static MyServerCallbacks *myBLEServer;
 static UARTServiceHandler *uartServiceHandler;
 static IMUServiceHandler *imuServiceHandler;
+static BLEMACAddressServiceHandler *macAddressServiceHandler;
 
 void setup() {
   // Serial.begin(115200);
@@ -51,10 +52,12 @@ void setup() {
   bleServer->setCallbacks(myBLEServer);
   uartServiceHandler = new UARTServiceHandler(bleServer);
   imuServiceHandler = new IMUServiceHandler(bleServer);
+  macAddressServiceHandler = new BLEMACAddressServiceHandler(bleServer);
 
   Serial.println("Starting BLE...");
   uartServiceHandler->start();
   imuServiceHandler->start();
+  macAddressServiceHandler->start();
 
   BLEAdvertising *adv = bleServer->getAdvertising();
   adv->addServiceUUID(BLE_IMU_SERVICE_UUID);

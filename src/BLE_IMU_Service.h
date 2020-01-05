@@ -6,8 +6,6 @@
 
 const char BLE_IMU_SERVICE_UUID[] = "509B8001-EBE1-4AA5-BC51-11004B78D5CB";
 const char BLE_IMU_SENSOR_CHAR_UUID[] = "509B8002-EBE1-4AA5-BC51-11004B78D5CB";
-const char BLE_IMU_DEVICE_INFO_CHAR_UUID[] =
-    "509B8003-EBE1-4AA5-BC51-11004B78D5CB";
 
 const uint8_t BLE_IMU_MESSAGE_VERSION = 1;
 
@@ -78,15 +76,6 @@ class IMUServiceHandler {
     imuSensorValueChar = imuService->createCharacteristic(
         BLE_IMU_SENSOR_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
     imuSensorValueChar->addDescriptor(new BLE2902());
-    auto *imuDeviceInfoChar = imuService->createCharacteristic(
-        BLE_IMU_DEVICE_INFO_CHAR_UUID, BLECharacteristic::PROPERTY_READ);
-    imuDeviceInfoChar->addDescriptor(new BLE2902());
-
-    byte macAddress[6];
-    WiFi.macAddress(macAddress);
-    uint8_t macString[2 * sizeof macAddress + 1];
-    BLEUtils().buildHexData(macString, macAddress, 6);
-    imuDeviceInfoChar->setValue(macString, 2 * sizeof macAddress);
   }
 
   void start() { imuService->start(); }
