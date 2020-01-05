@@ -11,7 +11,7 @@
 
 static const char BLE_ADV_NAME[] = "ESP32 IMU";
 
-static const int TX_DELAY = 900 / 60;  // 60 fps, with headroom
+static const int TX_DELAY = (1000 - 10) / 60;  // 60 fps, with headroom
 
 static BLEServer *bleServer = NULL;
 static BLECharacteristic *imuSensorValueChar;
@@ -21,7 +21,6 @@ static unsigned long nextTxTimeMs = 0;
 static auto bno = BNO055_Dummy();
 
 class MyServerCallbacks : public BLEServerCallbacks {
- public:
   void onConnect(BLEServer *server) {
     Serial.println("BLE connected");
     connectionCount++;
@@ -33,6 +32,7 @@ class MyServerCallbacks : public BLEServerCallbacks {
     connectionCount--;
   }
 
+ public:
   void tick() {
     if (connectionCount == 0 && prevDeviceConnected) {
       delay(500);
@@ -45,7 +45,8 @@ class MyServerCallbacks : public BLEServerCallbacks {
   bool prevDeviceConnected = false;
 };
 
-static MyServerCallbacks *myBLEServer = NULL;
+static MyServerCallbacks *myBLEServer;
+static UARTServiceHandler *uartServiceHandler;
 
 void setup() {
   // Serial.begin(115200);
@@ -55,8 +56,7 @@ void setup() {
   bleServer = BLEDevice::createServer();
   myBLEServer = new MyServerCallbacks();
   bleServer->setCallbacks(myBLEServer);
-
-  addUARTService(bleServer);
+  uartServiceHandler = new UARTServiceHandler(bleServer);
 
   // IMU service and characteristics
   BLEService *imuService = bleServer->createService(BLE_IMU_SERVICE_UUID);
@@ -74,7 +74,7 @@ void setup() {
   imuDeviceInfoChar->setValue(macString, sizeof macString);
 
   Serial.println("Starting BLE...");
-  startUARTService();
+  uartServiceHandler->start();
   imuService->start();
 
   BLEAdvertising *adv = bleServer->getAdvertising();
@@ -84,7 +84,7 @@ void setup() {
 
 void loop() {
   if (myBLEServer->connectionCount > 0) {
-    tickUARTService();
+    uartServiceHandler->tick();
   }
   unsigned long now = millis();
   // Doesn't account for time wraparound

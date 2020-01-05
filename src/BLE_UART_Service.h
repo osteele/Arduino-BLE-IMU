@@ -7,12 +7,13 @@ static const char NF_UART_TX_CHAR_UUID[] =
 
 // If true, send the timestamp every UART_TX_HEARTBEAT_DELAY ticks
 static const bool SEND_UART_TX_HEARTBEAT = false;
-static const int UART_TX_HEARTBEAT_DELAY = 10 / 60;
-
-static BLECharacteristic *txChar;
-static BLECharacteristic *rxChar;
+static const int UART_TX_HEARTBEAT_DELAY = (1000 - 10) / 10;
 
 class UARTRxCallbacks : public BLECharacteristicCallbacks {
+ public:
+  UARTRxCallbacks(BLECharacteristic *txChar) : txChar(txChar) {}
+
+ private:
   void onWrite(BLECharacteristic *ch) {
     std::string value = ch->getValue();
     if (value.length() > 0) {
@@ -29,37 +30,43 @@ class UARTRxCallbacks : public BLECharacteristicCallbacks {
       }
     }
   }
+  BLECharacteristic *txChar;
 };
 
-BLEService *uartService = NULL;
+class UARTServiceHandler {
+ public:
+  UARTServiceHandler(BLEServer *bleServer) {
+    uartService = bleServer->createService(NF_UART_SERVICE_UUID);
 
-inline void addUARTService(BLEServer *bleServer) {
-  // UART service and characteristics
-  uartService = bleServer->createService(NF_UART_SERVICE_UUID);
+    txChar = uartService->createCharacteristic(
+        NF_UART_TX_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+    txChar->addDescriptor(new BLE2902());
 
-  txChar = uartService->createCharacteristic(
-      NF_UART_TX_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
-  txChar->addDescriptor(new BLE2902());
-
-  rxChar = uartService->createCharacteristic(NF_UART_RX_CHAR_UUID,
-                                             BLECharacteristic::PROPERTY_WRITE);
-  rxChar->setCallbacks(new UARTRxCallbacks());
-}
-
-inline void startUARTService() { uartService->start(); }
-
-inline void tickUARTService() {
-  static unsigned long nextTxTimeMs = 0;
-  unsigned long now = millis();
-  if (SEND_UART_TX_HEARTBEAT && now > nextTxTimeMs) {
-    static char buffer[10];
-    int len = snprintf(buffer, sizeof buffer, "%ld\n", now);
-    if (0 <= len && len <= sizeof buffer) {
-      txChar->setValue((uint8_t *)buffer, len);
-      txChar->notify();
-    } else {
-      Serial.println("Tx buffer overflow");
-    }
-    nextTxTimeMs = now + UART_TX_HEARTBEAT_DELAY;
+    rxChar = uartService->createCharacteristic(
+        NF_UART_RX_CHAR_UUID, BLECharacteristic::PROPERTY_WRITE);
+    rxChar->setCallbacks(new UARTRxCallbacks(txChar));
   }
-}
+
+  void start() { uartService->start(); }
+
+  void tick() {
+    unsigned long now = millis();
+    if (SEND_UART_TX_HEARTBEAT && now > nextTxTimeMs) {
+      static char buffer[10];
+      int len = snprintf(buffer, sizeof buffer, "%ld\n", now);
+      if (0 <= len && len <= sizeof buffer) {
+        txChar->setValue((uint8_t *)buffer, len);
+        txChar->notify();
+      } else {
+        Serial.println("Tx buffer overflow");
+      }
+      nextTxTimeMs = now + UART_TX_HEARTBEAT_DELAY;
+    }
+  }
+
+ private:
+  BLEService *uartService = NULL;
+  BLECharacteristic *txChar;
+  BLECharacteristic *rxChar;
+  unsigned long nextTxTimeMs = 0;
+};
