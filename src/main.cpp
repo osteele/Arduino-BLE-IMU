@@ -12,35 +12,47 @@ static const char BLE_ADV_NAME[] = "ESP32 IMU";
 
 static BLEServer *bleServer = NULL;
 
-class MyServerCallbacks : public BLEServerCallbacks {
-  void onConnect(BLEServer *server) {
-    Serial.println("BLE connected");
-    connectionCount++;
-    prevDeviceConnected = true;
-  };
-
-  void onDisconnect(BLEServer *server) {
-    Serial.println("BLE disconnected");
-    connectionCount--;
+class BLEServiceManager : public BLEServerCallbacks {
+ public:
+  void addServiceHandler(BLEServiceHandler *handler) {
+    serviceHandlers_.push_back(handler);
   }
 
- public:
+  void startServiceHandlers() {
+    std::for_each(serviceHandlers_.begin(), serviceHandlers_.end(),
+                  std::mem_fun(&BLEServiceHandler::start));
+  }
+
   void tick() {
-    if (connectionCount == 0 && prevDeviceConnected) {
+    if (connectionCount_ > 0) {
+      std::for_each(serviceHandlers_.begin(), serviceHandlers_.end(),
+                    std::mem_fun(&BLEServiceHandler::tick));
+    }
+    if (connectionCount_ == 0 && prevDeviceConnected_) {
       delay(500);
       Serial.println("Restart BLE advertising");
       bleServer->startAdvertising();
     }
   }
 
-  int connectionCount = 0;
-  bool prevDeviceConnected = false;
+ private:
+  std::vector<BLEServiceHandler *> serviceHandlers_;
+  int connectionCount_ = 0;
+  bool prevDeviceConnected_ = false;
+
+  void onConnect(BLEServer *server) {
+    Serial.println("BLE connected");
+    connectionCount_++;
+    prevDeviceConnected_ = true;
+  };
+
+  void onDisconnect(BLEServer *server) {
+    Serial.println("BLE disconnected");
+    connectionCount_--;
+  }
 };
 
-static MyServerCallbacks *myBLEServer;
-static BLE_UARTServiceHandler *uartServiceHandler;
-static BLE_IMUServiceHandler *imuServiceHandler;
-static BLE_MACAddressServiceHandler *macAddressServiceHandler;
+static BLEServiceManager *myBLEServer;
 
 void setup() {
   // Serial.begin(115200);
@@ -48,26 +60,19 @@ void setup() {
 
   BLEDevice::init(BLE_ADV_NAME);
   bleServer = BLEDevice::createServer();
-  myBLEServer = new MyServerCallbacks();
+  myBLEServer = new BLEServiceManager();
   bleServer->setCallbacks(myBLEServer);
-  uartServiceHandler = new BLE_UARTServiceHandler(bleServer);
-  imuServiceHandler = new BLE_IMUServiceHandler(bleServer);
-  macAddressServiceHandler = new BLE_MACAddressServiceHandler(bleServer);
+
+  myBLEServer->addServiceHandler(new BLE_IMUServiceHandler(bleServer));
+  myBLEServer->addServiceHandler(new BLE_MACAddressServiceHandler(bleServer));
+  myBLEServer->addServiceHandler(new BLE_UARTServiceHandler(bleServer));
 
   Serial.println("Starting BLE...");
-  uartServiceHandler->start();
-  imuServiceHandler->start();
-  macAddressServiceHandler->start();
+  myBLEServer->startServiceHandlers();
 
   BLEAdvertising *adv = bleServer->getAdvertising();
   adv->addServiceUUID(BLE_IMU_SERVICE_UUID);
   adv->start();
 }
 
-void loop() {
-  if (myBLEServer->connectionCount > 0) {
-    uartServiceHandler->tick();
-    imuServiceHandler->tick();
-  }
-  myBLEServer->tick();
-}
+void loop() { myBLEServer->tick(); }
