@@ -33,9 +33,9 @@ class UARTRxCallbacks : public BLECharacteristicCallbacks {
   BLECharacteristic *txChar;
 };
 
-class UARTServiceHandler {
+class BLE_UARTServiceHandler {
  public:
-  UARTServiceHandler(BLEServer *bleServer) {
+  BLE_UARTServiceHandler(BLEServer *bleServer) {
     uartService = bleServer->createService(NF_UART_SERVICE_UUID);
 
     txChar = uartService->createCharacteristic(

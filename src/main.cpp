@@ -38,9 +38,9 @@ class MyServerCallbacks : public BLEServerCallbacks {
 };
 
 static MyServerCallbacks *myBLEServer;
-static UARTServiceHandler *uartServiceHandler;
-static IMUServiceHandler *imuServiceHandler;
-static BLEMACAddressServiceHandler *macAddressServiceHandler;
+static BLE_UARTServiceHandler *uartServiceHandler;
+static BLE_IMUServiceHandler *imuServiceHandler;
+static BLE_MACAddressServiceHandler *macAddressServiceHandler;
 
 void setup() {
   // Serial.begin(115200);
@@ -50,9 +50,9 @@ void setup() {
   bleServer = BLEDevice::createServer();
   myBLEServer = new MyServerCallbacks();
   bleServer->setCallbacks(myBLEServer);
-  uartServiceHandler = new UARTServiceHandler(bleServer);
-  imuServiceHandler = new IMUServiceHandler(bleServer);
-  macAddressServiceHandler = new BLEMACAddressServiceHandler(bleServer);
+  uartServiceHandler = new BLE_UARTServiceHandler(bleServer);
+  imuServiceHandler = new BLE_IMUServiceHandler(bleServer);
+  macAddressServiceHandler = new BLE_MACAddressServiceHandler(bleServer);
 
   Serial.println("Starting BLE...");
   uartServiceHandler->start();

@@ -71,9 +71,9 @@ class BLE_IMUMessage {
 
 static const int TX_DELAY = (1000 - 10) / 60;  // 60 fps, with headroom
 
-class IMUServiceHandler {
+class BLE_IMUServiceHandler {
  public:
-  IMUServiceHandler(BLEServer *bleServer) {
+  BLE_IMUServiceHandler(BLEServer *bleServer) {
     bleService_ = bleServer->createService(BLE_IMU_SERVICE_UUID);
 
     imuSensorValueChar_ = bleService_->createCharacteristic(
