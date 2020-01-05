@@ -4,17 +4,20 @@
 #include <cmath>
 #include "utils.h"
 
-class BNO055 {
+class BNO055Base {
  public:
+  virtual bool begin() = 0;
   // virtual void setExtCrystalUse(bool);
   virtual void getCalibration(uint8_t* system, uint8_t* gyro, uint8_t* accel,
-                              uint8_t* mag);
-  virtual imu::Quaternion getQuat();
+                              uint8_t* mag) = 0;
+  virtual imu::Quaternion getQuat() = 0;
 };
 
-class BNO055Wrapper : public BNO055 {
+template <class T>
+class BNO055Adaptor : public BNO055Base {
  public:
-  BNO055Wrapper(Adafruit_BNO055& bno) : _base(bno) {}
+  BNO055Adaptor(T& bno) : _base(bno) {}
+  bool begin() { return _base.begin(); }
   // virtual setExtCrystalUse(bool flag) : {}
   void getCalibration(uint8_t* system, uint8_t* gyro, uint8_t* accel,
                       uint8_t* mag) {
@@ -24,10 +27,10 @@ class BNO055Wrapper : public BNO055 {
   imu::Quaternion getQuat() { return _base.getQuat(); }
 
  private:
-  Adafruit_BNO055 _base;
+  T _base;
 };
 
-class BNO055Dummy : public BNO055 {
+class BNO055Dummy : public BNO055Base {
  public:
   BNO055Dummy() : createdAt_(millis()) {}
   bool begin() { return true; }

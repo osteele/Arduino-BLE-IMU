@@ -74,8 +74,11 @@ void setup() {
 
   Wire.beginTransmission(0x28);
   byte error = Wire.endTransmission();
-  BNO055 *bno = error == 0 ? (BNO055 *)new BNO055Wrapper(*new Adafruit_BNO055())
-                           : (BNO055 *)new BNO055Dummy();
+  BNO055Base *bno =
+      error == 0 ? static_cast<BNO055Base *>(new BNO055Adaptor<Adafruit_BNO055>(
+                       *new Adafruit_BNO055()))
+                 : static_cast<BNO055Base *>(new BNO055Dummy());
+  bno->begin();
 
   BLEDevice::init(BLE_ADV_NAME);
   bleServiceManager = new BLEServiceManager();
