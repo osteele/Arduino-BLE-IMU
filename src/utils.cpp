@@ -1,6 +1,14 @@
 #include "utils.h"
 #include <math.h>
 
+std::string getMACAddress() {
+  byte macAddress[6];
+  WiFi.macAddress(macAddress);
+  uint8_t macString[2 * sizeof macAddress + 1];
+  BLEUtils().buildHexData(macString, macAddress, sizeof macAddress);
+  return std::string((const char*)macString);
+}
+
 void euler2quat(const float euler[], float q[]) {
   float yaw = euler[0], pitch = euler[1], roll = euler[2];
   float c1 = cos(yaw / 2), s1 = sin(yaw / 2), c2 = cos(pitch / 2),

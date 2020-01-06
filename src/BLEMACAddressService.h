@@ -1,7 +1,6 @@
 #include <BLE2902.h>
-#include <BLEUtils.h>
-#include <WiFi.h>
 #include "BLEServiceHandler.h"
+#include "utils.h"
 
 const char BLE_MAC_ADDRESS_SERVICE_UUID[] =
     "709F0001-37E3-439E-A338-23F00067988B";
@@ -15,10 +14,7 @@ class BLE_MACAddressServiceHandler : public BLEServiceHandler {
         BLE_MAC_ADDRESS_CHAR_UUID, BLECharacteristic::PROPERTY_READ);
     bleChar->addDescriptor(new BLE2902());
 
-    byte macAddress[6];
-    WiFi.macAddress(macAddress);
-    uint8_t macString[2 * sizeof macAddress + 1];
-    BLEUtils().buildHexData(macString, macAddress, sizeof macAddress);
-    bleChar->setValue(macString, 2 * sizeof macAddress);
+    std::string macAddress = getMACAddress();
+    bleChar->setValue((uint8_t *)macAddress.data(), macAddress.length());
   }
 };
