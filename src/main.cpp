@@ -13,19 +13,22 @@
 
 static const char BLE_ADV_NAME[] = "ESP32 IMU";
 
-static BLEServiceManager *bleServiceManager;
+static BLEServiceManager* bleServiceManager;
+
+static BNO055Base* getBNO055() {
+  // Wire.beginTransmission(0x28);
+  // byte error = Wire.endTransmission();
+  auto bno = new Adafruit_BNO055();
+  if (bno->begin())
+    return new BNO055Adaptor<Adafruit_BNO055>(*new Adafruit_BNO055());
+  return new BNO055Dummy();
+}
 
 void setup() {
   // Serial.begin(115200);
   Serial.begin(9600);
 
-  Wire.beginTransmission(0x28);
-  byte error = Wire.endTransmission();
-  BNO055Base *bno =
-      error == 0 ? static_cast<BNO055Base *>(new BNO055Adaptor<Adafruit_BNO055>(
-                       *new Adafruit_BNO055()))
-                 : static_cast<BNO055Base *>(new BNO055Dummy());
-  bno->begin();
+  BNO055Base* bno = getBNO055();
 
   BLEDevice::init(BLE_ADV_NAME);
   bleServiceManager = new BLEServiceManager();
