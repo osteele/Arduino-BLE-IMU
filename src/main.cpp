@@ -5,11 +5,11 @@
 #include <BLEUtils.h>
 #include <HardwareSerial.h>
 
+#include "BLEIMUService.h"
+#include "BLEMACAddressService.h"
 #include "BLEServiceManager.h"
-#include "BLE_IMU_Service.h"
-#include "BLE_MAC_Address_Service.h"
-#include "BLE_UART_Service.h"
-#include "BNO055_Dummy.h"
+#include "BLEUARTService.h"
+#include "BNO055Dummy.h"
 
 static const char BLE_ADV_NAME[] = "ESP32 IMU";
 

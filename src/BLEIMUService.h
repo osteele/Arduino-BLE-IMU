@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <cassert>
 #include <vector>
-#include "BLE_Service_Handler.h"
-#include "BNO055_Dummy.h"
+#include "BLEServiceHandler.h"
+#include "BNO055Dummy.h"
 
 const char BLE_IMU_SERVICE_UUID[] = "509B0001-EBE1-4AA5-BC51-11004B78D5CB";
 const char BLE_IMU_SENSOR_CHAR_UUID[] = "509B0002-EBE1-4AA5-BC51-11004B78D5CB";
