@@ -20,7 +20,7 @@ class UARTRxCallbacks : public BLECharacteristicCallbacks {
     std::string value = ch->getValue();
     if (value.length() > 0) {
       Serial.print("Rx: ");
-      Serial.write((value + "\0").c_str());
+      Serial.write(value.c_str());
       if (value[value.length() - 1] != '\n') {
         Serial.println();
       }
