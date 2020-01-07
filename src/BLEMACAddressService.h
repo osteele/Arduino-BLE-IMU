@@ -28,7 +28,10 @@ class BLE_MACAddressServiceHandler : public BLEServiceHandler {
     macaddressChar->setValue((uint8_t *)macAddress.data(), macAddress.length());
 
     auto *deviceNameChar = bleService_->createCharacteristic(
-        BLE_DEVICE_NAME_CHAR_UUID, BLECharacteristic::PROPERTY_WRITE);
+        BLE_DEVICE_NAME_CHAR_UUID,
+        BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
+    std::string deviceName = Config::getInstance().getBLEDeviceName("");
+    deviceNameChar->setValue((uint8_t *)deviceName.data(), deviceName.length());
     deviceNameChar->setCallbacks(new BLEDeviceNameCallbacks());
   }
 };
