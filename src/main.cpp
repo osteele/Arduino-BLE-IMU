@@ -11,6 +11,7 @@
 #include "BLEServiceManager.h"
 #include "BLEUARTService.h"
 #include "BNO055Dummy.h"
+#include "Config.h"
 
 static const char BLE_ADV_NAME[] = "ESP32 IMU";
 
@@ -32,22 +33,7 @@ static BNO055Base* getBNO055() {
 void setup() {
   Serial.begin(115200);
 
-  std::string bleDeviceName(BLE_ADV_NAME);
-  if (!SPIFFS.begin(true)) {
-    Serial.println("Unable to mount SPIFFS");
-  } else {
-    File file = SPIFFS.open(BLE_NAME_FILE);
-    if (file) {
-      Serial.print("Read saved BLE device name: ");
-      bleDeviceName = "";
-      while (file.available()) {
-        bleDeviceName.append(1, file.read());
-      }
-      Serial.println(bleDeviceName.c_str());
-      file.close();
-    }
-  }
-
+  std::string bleDeviceName = Config::getInstance().getBLEName(BLE_ADV_NAME);
   BNO055Base* bno = getBNO055();
 
   BLEDevice::init(bleDeviceName.c_str());
