@@ -10,7 +10,7 @@ class Config {
   Config(Config const&) = delete;
   void operator=(Config const&) = delete;
 
-  std::string getBLEName(const std::string defaultValue) {
+  std::string getBLEDeviceName(const std::string defaultValue) {
     if (!SPIFFS.begin(true)) {
       Serial.println("Unable to mount SPIFFS");
       return defaultValue;
@@ -23,12 +23,10 @@ class Config {
       value.append(1, file.read());
     }
     file.close();
-    Serial.print("Read saved BLE device name: ");
-    Serial.println(value.c_str());
     return value;
   }
 
-  void setBLEName(const std::string value) {
+  void setBLEDeviceName(const std::string value) {
     File file = SPIFFS.open(BLE_DEVICE_NAME_FILE, FILE_WRITE);
     if (file) {
       file.print(value.c_str());

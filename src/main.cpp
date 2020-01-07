@@ -33,7 +33,8 @@ static BNO055Base* getBNO055() {
 void setup() {
   Serial.begin(115200);
 
-  std::string bleDeviceName = Config::getInstance().getBLEName(BLE_ADV_NAME);
+  std::string bleDeviceName =
+      Config::getInstance().getBLEDeviceName(BLE_ADV_NAME);
   BNO055Base* bno = getBNO055();
 
   BLEDevice::init(bleDeviceName.c_str());
@@ -45,7 +46,9 @@ void setup() {
   bleServiceManager->addServiceHandler(
       new BLE_UARTServiceHandler(bleServiceManager->bleServer));
 
-  Serial.println("Starting BLE...");
+  Serial.print("Starting BLE (device name=");
+  Serial.print(bleDeviceName.c_str());
+  Serial.println(")");
   bleServiceManager->start();
 }
 
