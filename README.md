@@ -1,16 +1,20 @@
 # Arduino BLE IMU
 
-Configures an Arduino to publish BNO055 orientation data over a Bluetooth Low
-Energy (BLE) connection, for use with
+This software runs on an ESP32 to publish BNO055 orientation data over a
+Bluetooth Low Energy (BLE) connection, for use with
 [osteele/imu-tools](https://github.com/osteele/imu-tools).
 
 ## BLE Services
 
-The software defines these BLE services:
+The software defines the following BLE services.
 
-The **IMU Service** includes these characteristics:
+### IMU Service (`509B0001-EBE1-4AA5-BC51-11004B78D5CB`)
 
-* Sensor (READ): A packed structure of sensors readings. The message format is:
+
+Characteristics:
+
+* Sensor (READ; `509B0002-EBE1-4AA5-BC51-11004B78D5CB`): A packed structure of
+  sensors readings. The message format is:
   * Version (uint8): 1
   * Flags (uint8): specifies which of the following fields are present.
   * Time (uint16): the low 16 bits of the MCU's millisecond time
@@ -20,12 +24,9 @@ The **IMU Service** includes these characteristics:
   This protocol has the property that a message with just the Quaternion
   position is exactly 20 bytes, or one BLE 4.0 packet.
 
-* Calibration (READ, NOTIFY; 4 x uint_8): The system, gyro, accel, and mag
-  calibration values, each ranging 0..3. These are NOTIFYed when they change
-  (from initial assumed values of 0).
-
-The Service and Characteristic UUIDs, and the constants used in the Flags byte,
-are defined in `./src/BLEIMUService.h`.
+* Calibration (`509B0003-EBE1-4AA5-BC51-11004B78D5CB`; READ, NOTIFY; 4 x
+  uint_8): The system, gyro, accel, and mag calibration values, each ranging
+  0..3. These are NOTIFYed when they change (from initial assumed values of 0).
 
 Characteristic data are transmitted in little-endian order, not network order.
 This matches the standard GATT profile characteristics such as the heart-rate
@@ -37,26 +38,32 @@ code. The system doesn't appear to be capable of transmitting at greater than
 ~126 samples/second. For greater rates, consider MQTT, or onboard processing of
 the data.
 
-The **MAC Address Service** publishes the device's Ethernet MAC address, and the
-BLE device name. It defines these characteristics:
+### MAC Address Service (`709F0001-37E3-439E-A338-23F00067988B`)
 
-* MAC address (READ; string). imu-tools uses the MAC address as a device id that
-  persists across connections (the Web BLE API doesn't make the BLE device id
-  available to code). The MAC address is used instead of the BLE address so that
-  a device that publishes both to WiFi and BLE can be uniquely identified across
-  both protocols.
+Characteristics:
 
-* BLE Device Name (READ, WRITE, NOTIFY; string). This is persisted to Flash
-  (SPIFF). It's useful as a nickname, to identify multiple devices in a fleet
-  management scenario. This is the name that appears in the Web BLE connection
-  dialog.
+* MAC address (`709F0002-37E3-439E-A338-23F00067988B`; READ; string). imu-tools
+  uses the MAC address as a device id that persists across connections (the Web
+  BLE API doesn't make the BLE device id available to code). The MAC address is
+  used instead of the BLE address, so that a device that publishes both to WiFi
+  and BLE can be uniquely identified across both protocols.
 
-The Service and Characteristic UUIDs are defined in
-`./src/BLEMACAddressService.h`.
+* BLE Device Name (`709F0003-37E3-439E-A338-23F00067988B`; READ, WRITE, NOTIFY;
+  string). This is persisted to Flash via SPIFFS. It's useful as a nickname, to
+  identify multiple devices in a fleet management scenario. This is the name
+  that appears in the Web BLE connection dialog.
 
-The **UART Service** used the Nordic UART Service and Characteristic UUDs. It
-currently responds to RX "ping" with "pong", and "ping\n" with "pong\n".
-It is for debugging and possible future extensions.
+### UART Service
+
+The **UART Service** (`6E400001-B5A3-F393-E0A9-E50E24DCCA9E`) uses the Nordic
+UART Service and Characteristic UUIDs. It currently responds to RX "ping" with
+"pong", and "ping\n" with "pong\n". It is for debugging and possible future
+extensions.
+
+Characteristics:
+
+* RX (`6E400002-B5A3-F393-E0A9-E50E24DCCA9E`; READ)
+* TX (`6E400003-B5A3-F393-E0A9-E50E24DCCA9E`; WRITE, NOTIFY)
 
 ## Installation
 
@@ -80,7 +87,7 @@ Line](https://docs.platformio.org/en/latest/installation.html), or by opening
 The code is currently specific to the ESP32. Porting it to another board that
 supports the Arduino APIs requires at least these changes:
 
-* The persistent configuration code uses SPIFF. If this is not available, use
+* The persistent configuration code uses SPIFFS. If this is not available, use
   the Flash API.
 * The BLE MAC address service publishes the WiFi MAC address. If there is no
   WiFi MAC address, use the BLE address.
