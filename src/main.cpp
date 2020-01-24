@@ -31,6 +31,47 @@ static BNO055Base* getBNO055() {
   }
 }
 
+static void wifiConnect() {
+  if (!SPIFFS.begin(true)) {
+    Serial.println("Unable to mount SPIFFS");
+    return;
+  }
+  // if (!SPIFFS.exists("/wpa_supplicant.txt")) {
+  //   Serial.println("File does not exist");
+  //   return;
+  // }
+  File file = SPIFFS.open("/wpa_supplicant.txt");
+  if (!file) {
+    Serial.println("Unable to open file");
+    return;
+  }
+  std::string ssid, password;
+  int fieldNo = 0;
+  while (file.available()) {
+    int c = file.read();
+
+    if (c == '\n') {
+      if (++fieldNo > 1) break;
+    } else {
+      (fieldNo == 0 ? ssid : password).append(1, c);
+    }
+  }
+  Serial.print("Connecting to WiFi ");
+  Serial.print(ssid.c_str());
+  Serial.print("...");
+  WiFi.begin(ssid.c_str(), password.c_str());
+  while (WiFi.status() == WL_DISCONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("done");
+  } else {
+    Serial.print("\nWiFi connection failed. Status=");
+    Serial.println(WiFi.status());
+  }
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -51,6 +92,8 @@ void setup() {
   Serial.print(bleDeviceName.c_str());
   Serial.println(")");
   bleServiceManager->start();
+
+  wifiConnect();
 }
 
 void loop() { bleServiceManager->tick(); }
