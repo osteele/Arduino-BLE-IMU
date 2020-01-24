@@ -32,30 +32,44 @@ static BNO055Base* getBNO055() {
 }
 
 static void wifiConnect() {
+  static const char WPA_SUPPLICANT_FNAME[] = "/wpa_supplicant.txt";
   if (!SPIFFS.begin(true)) {
     Serial.println("Unable to mount SPIFFS");
     return;
   }
-  // if (!SPIFFS.exists("/wpa_supplicant.txt")) {
-  //   Serial.println("File does not exist");
-  //   return;
-  // }
-  File file = SPIFFS.open("/wpa_supplicant.txt");
+  if (!SPIFFS.exists(WPA_SUPPLICANT_FNAME)) {
+    Serial.println("WPA supplicant file: does not exist");
+    return;
+  }
+  File file = SPIFFS.open(WPA_SUPPLICANT_FNAME);
   if (!file) {
-    Serial.println("Unable to open file");
+    Serial.println("WPA supplicant file: Unable to open");
     return;
   }
   std::string ssid, password;
   int fieldNo = 0;
   while (file.available()) {
     int c = file.read();
-
     if (c == '\n') {
       if (++fieldNo > 1) break;
     } else {
       (fieldNo == 0 ? ssid : password).append(1, c);
     }
   }
+
+  int n = WiFi.scanNetworks();
+  Serial.print("WiFi count = ");
+  Serial.println(n);
+  for (int i = 0; i < n; ++i) {
+    Serial.print(i + 1);
+    Serial.print(": ");
+    Serial.print(WiFi.SSID(i));
+    Serial.print(" (");
+    Serial.print(WiFi.RSSI(i));
+    Serial.print(")");
+    Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
+  }
+
   Serial.print("Connecting to WiFi ");
   Serial.print(ssid.c_str());
   Serial.print("...");
