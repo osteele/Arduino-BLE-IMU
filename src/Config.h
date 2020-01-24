@@ -23,7 +23,7 @@ class Config {
       value.append(1, file.read());
     }
     file.close();
-    return value;
+    return value.length() > 0 ? value : defaultValue;
   }
 
   void setBLEDeviceName(const std::string value) {
