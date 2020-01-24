@@ -28,11 +28,12 @@ class BLEServiceManager : public BLEServerCallbacks {
   }
 
   void tick() {
-    if (connectionCount_ > 0) {
+    uint32_t connectionCount = bleServer->getConnectedCount();
+    if (connectionCount > 0) {
       std::for_each(serviceHandlers_.begin(), serviceHandlers_.end(),
                     std::mem_fun(&BLEServiceHandler::tick));
     }
-    if (connectionCount_ == 0 && prevDeviceConnected_) {
+    if (connectionCount == 0 && hasBeenConnected_) {
       delay(500);
       Serial.println("Restart BLE advertising");
       bleServer->startAdvertising();
@@ -42,17 +43,12 @@ class BLEServiceManager : public BLEServerCallbacks {
  private:
   std::vector<BLEServiceHandler *> serviceHandlers_;
   BLEAdvertising *adv_;
-  int connectionCount_ = 0;
-  bool prevDeviceConnected_ = false;
+  bool hasBeenConnected_ = false;
 
   void onConnect(BLEServer *server) {
     Serial.println("BLE connected");
-    connectionCount_++;
-    prevDeviceConnected_ = true;
+    hasBeenConnected_ = true;
   };
 
-  void onDisconnect(BLEServer *server) {
-    Serial.println("BLE disconnected");
-    connectionCount_--;
-  }
+  void onDisconnect(BLEServer *server) { Serial.println("BLE disconnected"); }
 };
