@@ -69,10 +69,13 @@ void wifiConnect() {
         return entry != localSsids.end();
       });
   if (item == configSsids.end()) {
-    Serial.println("No known WiFi network. Found:");
+    Serial.print("No known WiFi network found in ");
+    int count = 0;
     for (const auto& item : localSsids) {
-      Serial.println(item.first.c_str());
+      if (++count > 1) Serial.print(", ");
+      Serial.print(item.first.c_str());
     }
+    Serial.println();
     return;
   }
 

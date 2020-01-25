@@ -31,9 +31,13 @@ static BNO055Base* getBNO055() {
 }
 
 void wifiConnect();
+void mqttConnect();
 
 void setup() {
   Serial.begin(115200);
+
+  wifiConnect();
+  mqttConnect();
 
   std::string bleDeviceName =
       Config::getInstance().getBLEDeviceName(BLE_ADV_NAME);
@@ -52,8 +56,6 @@ void setup() {
   Serial.print(bleDeviceName.c_str());
   Serial.println(")");
   bleServiceManager->start();
-
-  wifiConnect();
 }
 
 void loop() { bleServiceManager->tick(); }
