@@ -20,6 +20,7 @@ static Adafruit_BNO055 bno055;
 static BLEServiceManager* bleServiceManager;
 static MQTTClient mqttClient;
 static WiFiSupplicant wifiSupplicant;
+BNO055Base* bno;
 
 static BNO055Base* getBNO055() {
   Wire.begin(23, 22);
@@ -37,21 +38,20 @@ static BNO055Base* getBNO055() {
 void setup() {
   Serial.begin(115200);
 
-  wifiSupplicant.connect();
-  mqttClient.connect();
+  if (wifiSupplicant.connect()) mqttClient.connect();
 
   std::string bleDeviceName =
       Config::getInstance().getBLEDeviceName(BLE_ADV_NAME);
-  BNO055Base* bno = getBNO055();
+  bno = getBNO055();
 
   BLEDevice::init(bleDeviceName.c_str());
   bleServiceManager = new BLEServiceManager();
   bleServiceManager->addServiceHandler(
-      new BLE_IMUServiceHandler(bleServiceManager->bleServer, *bno), true);
+      new BLE_IMUServiceHandler(&bleServiceManager->bleServer, *bno), true);
   bleServiceManager->addServiceHandler(
-      new BLE_MACAddressServiceHandler(bleServiceManager->bleServer));
+      new BLE_MACAddressServiceHandler(&bleServiceManager->bleServer));
   bleServiceManager->addServiceHandler(
-      new BLE_UARTServiceHandler(bleServiceManager->bleServer));
+      new BLE_UARTServiceHandler(&bleServiceManager->bleServer));
 
   Serial.print("Starting BLE (device name=");
   Serial.print(bleDeviceName.c_str());
@@ -59,4 +59,20 @@ void setup() {
   bleServiceManager->start();
 }
 
-void loop() { bleServiceManager->tick(); }
+static const int MQTT_TX_DELAY = (1000 - 10) / 60;  // 60 fps, with headroom
+static unsigned long nextTxTimeMs = 0;
+
+void loop() {
+  bleServiceManager->tick();
+
+  unsigned long now = millis();
+  if (bleServiceManager->getConnectedCount() == 0 && mqttClient.connected() &&
+      now > nextTxTimeMs) {
+    BLE_IMUMessage value(now);
+    auto q = bno->getQuat();
+    value.setQuaternion(q.w(), q.x(), q.y(), q.z());
+    std::vector<uint8_t> payload = value.getPayload();
+    mqttClient.publish(payload);
+    nextTxTimeMs = now + MQTT_TX_DELAY;
+  }
+}

@@ -1,5 +1,6 @@
-#include "MQTTClient.h"
 #include <SPIFFS.h>
+
+#include "MQTTClient.h"
 
 static const char MQTT_CONFIG_FNAME[] = "/mqtt.config";
 
@@ -64,12 +65,12 @@ bool MQTTClient::connect() {
   MQTTConfig config;
   if (!config.read()) return false;
 
-  client_.setServer(config.host.c_str(), config.port);
+  pubSubClient_.setServer(config.host.c_str(), config.port);
   Serial.printf("Connecting to mqtt://%s@%s:%d...", config.user.c_str(),
                 config.host.c_str(), config.port);
-  if (!client_.connect("ESP32Client", config.user.c_str(),
-                       config.password.c_str())) {
-    Serial.printf("failed with state %d\n", client_.state());
+  if (!pubSubClient_.connect("ESP32Client", config.user.c_str(),
+                             config.password.c_str())) {
+    Serial.printf("failed with state %d\n", pubSubClient_.state());
     return false;
   }
   Serial.println("connected");
@@ -81,13 +82,15 @@ bool MQTTClient::connect() {
                  ::tolower);
   Serial.printf("device_id = %s\n", device_id.c_str());
 
-  topic_ = "/imu/" + device_id;
-  send();
+  topic_ = "imu/" + device_id;
   return true;
 }
 
-void MQTTClient::send() {
-  bool status = client_.publish(topic_.c_str(), "hello world");
-  Serial.print("mqtt send: ");
-  Serial.println(status);
+bool MQTTClient::publish(const char payload[]) {
+  bool status = pubSubClient_.publish(topic_.c_str(), payload);
+  if (!status) {
+    Serial.print("mqtt publish: ");
+    Serial.println(status);
+  }
+  return status;
 }

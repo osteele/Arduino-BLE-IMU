@@ -1,3 +1,6 @@
+#pragma once
+#ifndef _BLEIMUSERVICE_H
+#define _BLEIMUSERVICE_H
 #include <Adafruit_BNO055.h>
 #include <stdint.h>
 #include <cassert>
@@ -70,7 +73,9 @@ class BLE_IMUMessage {
   float quat_[4];
 };
 
-static const int TX_DELAY = (1000 - 10) / 60;  // 60 fps, with headroom
+// 60 fps, with headroom
+#define BLE_IMU_TX_FREQ 60
+static const int BLE_IMU_TX_DELAY = (1000 - 10) / BLE_IMU_TX_FREQ;
 
 class BLE_IMUServiceHandler : public BLEServiceHandler {
  public:
@@ -110,7 +115,7 @@ class BLE_IMUServiceHandler : public BLEServiceHandler {
       imuSensorValueChar_->setValue(payload.data(), payload.size());
       imuSensorValueChar_->notify();
 
-      nextTxTimeMs_ = now + TX_DELAY;
+      nextTxTimeMs_ = now + BLE_IMU_TX_DELAY;
     }
   }
 
@@ -129,3 +134,5 @@ class BLE_IMUServiceHandler : public BLEServiceHandler {
     calibration_ = calibration;
   }
 };
+
+#endif /* _BLEIMUSERVICE_H */

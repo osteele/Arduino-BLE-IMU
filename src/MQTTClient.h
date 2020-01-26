@@ -7,13 +7,18 @@
 
 class MQTTClient {
  public:
-  MQTTClient() : client_(wifiClient_) {}
+  MQTTClient() : pubSubClient_(wifiClient_) {}
   bool connect();
-  void send();
+  bool connected() { return wifiClient_.connected(); }
+  bool publish(const char payload[]);
+  bool publish(std::vector<uint8_t>& v) {
+    std::string str(v.begin(), v.end());
+    return publish(str.c_str());
+  }
 
  private:
   WiFiClient wifiClient_;
-  PubSubClient client_;
+  PubSubClient pubSubClient_;
   std::string topic_;
 };
 
