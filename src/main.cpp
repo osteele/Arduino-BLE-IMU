@@ -4,8 +4,6 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <HardwareSerial.h>
-#include "MQTTClient.h"
-#include "WiFiSupplicant.h"
 
 #include "BLEIMUService.h"
 #include "BLEMACAddressService.h"
@@ -13,11 +11,15 @@
 #include "BLEUARTService.h"
 #include "BNO055Dummy.h"
 #include "Config.h"
+#include "MQTTClient.h"
+#include "WiFiSupplicant.h"
 
 static const char BLE_ADV_NAME[] = "ESP32 IMU";
 
-static BLEServiceManager* bleServiceManager;
 static Adafruit_BNO055 bno055;
+static BLEServiceManager* bleServiceManager;
+static MQTTClient mqttClient;
+static WiFiSupplicant wifiSupplicant;
 
 static BNO055Base* getBNO055() {
   Wire.begin(23, 22);
@@ -35,8 +37,8 @@ static BNO055Base* getBNO055() {
 void setup() {
   Serial.begin(115200);
 
-  wifiConnect();
-  mqttConnect();
+  wifiSupplicant.connect();
+  mqttClient.connect();
 
   std::string bleDeviceName =
       Config::getInstance().getBLEDeviceName(BLE_ADV_NAME);

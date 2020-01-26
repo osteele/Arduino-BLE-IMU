@@ -1,35 +1,78 @@
 #include "MQTTClient.h"
-#include <PubSubClient.h>
 #include <SPIFFS.h>
-#include <WiFi.h>
-#include <string>
 
 static const char MQTT_CONFIG_FNAME[] = "/mqtt.config";
 
-static std::string mqttServer;
-static int mqttPort = 18623;
-static std::string mqttUser;
-static std::string mqttPassword;
+class MQTTConfig {
+ public:
+  std::string host;
+  int port = 18623;
+  std::string user;
+  std::string password;
 
-WiFiClient wifiClient;
-static PubSubClient client(wifiClient);
+  bool read() {
+    if (!SPIFFS.begin(true)) {
+      Serial.println("Unable to mount SPIFFS");
+      return false;
+    }
+    if (!SPIFFS.exists(MQTT_CONFIG_FNAME)) {
+      Serial.println("MQTT config file: does not exist");
+      return false;
+    }
+    File file = SPIFFS.open(MQTT_CONFIG_FNAME);
+    if (!file) {
+      Serial.println("MQTT config file: Unable to open");
+      return false;
+    }
 
-static std::string topic;
+    static std::vector<std::string> fields = readFields(file);
 
-static void readConfig();
+    if (fields.size() < 4) {
+      Serial.printf("MQTT config file: %d fields found; 4 expected\n",
+                    fields.size());
+      return false;
+    }
 
-void mqttConnect() {
-  readConfig();
-
-  client.setServer(mqttServer.c_str(), mqttPort);
-  Serial.printf("Connecting to mqtt://%s@%s:%d...", mqttUser.c_str(),
-                mqttServer.c_str(), mqttPort);
-  if (client.connect("ESP32Client", mqttUser.c_str(), mqttPassword.c_str())) {
-    Serial.println("connected");
-  } else {
-    Serial.printf("failed with state %d\n", client.state());
-    return;
+    host = fields[0];
+    port = atoi(fields[1].c_str());
+    user = fields[2];
+    password = fields[3];
+    return true;
   }
+
+ private:
+  std::vector<std::string> readFields(File file) {
+    static std::vector<std::string> fields;
+    std::string field;
+    while (file.available()) {
+      int c = file.read();
+      if (c == '\n') {
+        fields.push_back(field);
+        field.clear();
+      } else {
+        field.append(1, c);
+      }
+    }
+    if (!field.empty()) {
+      fields.push_back(field);
+    }
+    return fields;
+  }
+};
+
+bool MQTTClient::connect() {
+  MQTTConfig config;
+  if (!config.read()) return false;
+
+  client_.setServer(config.host.c_str(), config.port);
+  Serial.printf("Connecting to mqtt://%s@%s:%d...", config.user.c_str(),
+                config.host.c_str(), config.port);
+  if (!client_.connect("ESP32Client", config.user.c_str(),
+                       config.password.c_str())) {
+    Serial.printf("failed with state %d\n", client_.state());
+    return false;
+  }
+  Serial.println("connected");
 
   std::string device_id(WiFi.macAddress().c_str());
   device_id.erase(std::remove(device_id.begin(), device_id.end(), ':'),
@@ -38,50 +81,13 @@ void mqttConnect() {
                  ::tolower);
   Serial.printf("device_id = %s\n", device_id.c_str());
 
-  topic = "/imu/" + device_id;
-  mqttSend();
+  topic_ = "/imu/" + device_id;
+  send();
+  return true;
 }
 
-static void readConfig() {
-  if (!SPIFFS.begin(true)) {
-    Serial.println("Unable to mount SPIFFS");
-    return;
-  }
-  if (!SPIFFS.exists(MQTT_CONFIG_FNAME)) {
-    Serial.println("MQTT config file: does not exist");
-    return;
-  }
-  File file = SPIFFS.open(MQTT_CONFIG_FNAME);
-  if (!file) {
-    Serial.println("MQTT config file: Unable to open");
-    return;
-  }
-
-  static std::vector<std::string> fields;
-  std::string field;
-  while (file.available()) {
-    int c = file.read();
-    if (c == '\n') {
-      fields.push_back(field);
-      field.clear();
-    } else {
-      field.append(1, c);
-    }
-  }
-  if (!field.empty()) {
-    fields.push_back(field);
-  }
-
-  if (fields.size() < 4) {
-    Serial.printf("MQTT config file: %d fields found; 4 expected\n",
-                  fields.size());
-    return;
-  }
-
-  mqttServer = fields[0];
-  mqttPort = atoi(fields[1].c_str());
-  mqttUser = fields[2];
-  mqttPassword = fields[3];
+void MQTTClient::send() {
+  bool status = client_.publish(topic_.c_str(), "hello world");
+  Serial.print("mqtt send: ");
+  Serial.println(status);
 }
-
-void mqttSend() { client.publish(topic.c_str(), "hello world"); }

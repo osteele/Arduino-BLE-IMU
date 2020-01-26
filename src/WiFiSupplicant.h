@@ -2,6 +2,9 @@
 #ifndef _WIFISUPPLICANTCLIENT_H_
 #define _WIFISUPPLICANTCLIENT_H_
 
-void wifiConnect();
+class WiFiSupplicant {
+ public:
+  bool connect();
+};
 
-#endif
+#endif /* _WIFISUPPLICANTCLIENT_H_ */

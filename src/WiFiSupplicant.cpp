@@ -1,7 +1,8 @@
-#include "WiFiSupplicant.h"
 #include <SPIFFS.h>
 #include <WiFi.h>
 #include <map>
+
+#include "WiFiSupplicant.h"
 
 static const char WPA_SUPPLICANT_FNAME[] = "/wpa_supplicant.txt";
 
@@ -59,25 +60,30 @@ static const WiFiScanMap scanWiFi() {
   return ssids;
 }
 
-void wifiConnect() {
-  const WiFiConfig configSsids = readSupplicants();
+bool WiFiSupplicant::connect() {
+  const WiFiConfig supplicantSsids = readSupplicants();
   const WiFiScanMap localSsids = scanWiFi();
   auto item = std::find_if(
-      configSsids.begin(), configSsids.end(),
+      supplicantSsids.begin(), supplicantSsids.end(),
       [&localSsids](const std::pair<std::string, std::string>& item) {
         const std::string& ssid = item.first;
         auto entry = localSsids.find(ssid);
         return entry != localSsids.end();
       });
-  if (item == configSsids.end()) {
+  if (item == supplicantSsids.end()) {
     Serial.print("No known WiFi network found in ");
     int count = 0;
     for (const auto& item : localSsids) {
       if (++count > 1) Serial.print(", ");
       Serial.print(item.first.c_str());
     }
+    Serial.print("\nSupplicant networks are ");
+    for (const auto& item : supplicantSsids) {
+      if (&item != &supplicantSsids.front()) Serial.print(", ");
+      Serial.print(item.first.c_str());
+    }
     Serial.println();
-    return;
+    return false;
   }
 
   auto ssid = item->first;
@@ -92,15 +98,13 @@ void wifiConnect() {
     Serial.print(".");
     delay(500);
   }
-  switch (wifi_status) {
-    case WL_CONNECTED:
-      Serial.println("done");
-      break;
-    default:
-      Serial.printf("\nWiFi connection failed with status=%d\n", wifi_status);
-      return;
+  if (wifi_status != WL_CONNECTED) {
+    Serial.printf("failed with status=%d\n", wifi_status);
+    return false;
   }
+  Serial.println("success");
   Serial.printf("MAC address = %s\n", WiFi.macAddress().c_str());
   Serial.print("IP address = ");
   Serial.println(WiFi.localIP());
+  return true;
 }
