@@ -4,6 +4,8 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <HardwareSerial.h>
+#include "MQTTClient.h"
+#include "WiFiSupplicant.h"
 
 #include "BLEIMUService.h"
 #include "BLEMACAddressService.h"
@@ -29,9 +31,6 @@ static BNO055Base* getBNO055() {
     return new BNO055Dummy();
   }
 }
-
-void wifiConnect();
-void mqttConnect();
 
 void setup() {
   Serial.begin(115200);

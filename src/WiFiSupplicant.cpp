@@ -1,3 +1,4 @@
+#include "WiFiSupplicant.h"
 #include <SPIFFS.h>
 #include <WiFi.h>
 #include <map>

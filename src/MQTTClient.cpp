@@ -1,3 +1,4 @@
+#include "MQTTClient.h"
 #include <PubSubClient.h>
 #include <SPIFFS.h>
 #include <WiFi.h>
@@ -15,7 +16,6 @@ static PubSubClient client(wifiClient);
 
 static std::string topic;
 
-static void mqttSend();
 static void readConfig();
 
 void mqttConnect() {
@@ -84,4 +84,4 @@ static void readConfig() {
   mqttPassword = fields[3];
 }
 
-static void mqttSend() { client.publish(topic.c_str(), "hello world"); }
+void mqttSend() { client.publish(topic.c_str(), "hello world"); }
