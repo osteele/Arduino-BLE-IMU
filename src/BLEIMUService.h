@@ -77,10 +77,10 @@ class BLE_IMUMessage {
 #define BLE_IMU_TX_FREQ 60
 static const int BLE_IMU_TX_DELAY = (1000 - 10) / BLE_IMU_TX_FREQ;
 
-class BLE_IMUServiceHandler : public BLEServiceHandler {
+class BLEIMUServiceHandler : public BLEServiceHandler {
  public:
-  BLE_IMUServiceHandler(BLEServer *bleServer, BNO055Base &sensor)
-      : BLEServiceHandler(bleServer, BLE_IMU_SERVICE_UUID), bno_(sensor) {
+  BLEIMUServiceHandler(BLEServiceManager *manager, BNO055Base *sensor)
+      : BLEServiceHandler(manager, BLE_IMU_SERVICE_UUID), bno_(sensor) {
     imuSensorValueChar_ = bleService_->createCharacteristic(
         BLE_IMU_SENSOR_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
     imuSensorValueChar_->addDescriptor(new BLE2902());
@@ -101,13 +101,13 @@ class BLE_IMUServiceHandler : public BLEServiceHandler {
     // Doesn't account for time wraparound
     if (now > nextTxTimeMs_) {
       std::array<uint8_t, 4> calibration;
-      bno_.getCalibration(&calibration[0], &calibration[1], &calibration[2],
-                          &calibration[3]);
+      bno_->getCalibration(&calibration[0], &calibration[1], &calibration[2],
+                           &calibration[3]);
       if (calibration != calibration_) {
         setCalibrationValue();
         imuCalibrationChar_->notify();
       }
-      auto q = bno_.getQuat();
+      auto q = bno_->getQuat();
       BLE_IMUMessage value(now);
       value.setQuaternion(q.w(), q.x(), q.y(), q.z());
 
@@ -122,14 +122,14 @@ class BLE_IMUServiceHandler : public BLEServiceHandler {
  private:
   BLECharacteristic *imuSensorValueChar_;
   BLECharacteristic *imuCalibrationChar_;
-  BNO055Base &bno_;
+  BNO055Base *bno_;
   std::array<uint8_t, 4> calibration_ = {{0, 0, 0, 0}};
   unsigned long nextTxTimeMs_ = 0;
 
   void setCalibrationValue() {
     std::array<uint8_t, 4> calibration;
-    bno_.getCalibration(&calibration[0], &calibration[1], &calibration[2],
-                        &calibration[3]);
+    bno_->getCalibration(&calibration[0], &calibration[1], &calibration[2],
+                         &calibration[3]);
     imuCalibrationChar_->setValue(calibration.data(), calibration.size());
     calibration_ = calibration;
   }

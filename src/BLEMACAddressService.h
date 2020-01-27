@@ -1,6 +1,6 @@
+#pragma once
 #include <BLE2902.h>
-#include "BLEServiceHandler.h"
-
+#include "BLEServiceManager.h"
 #include "Config.h"
 #include "utils.h"
 
@@ -22,10 +22,10 @@ class BLEDeviceNameCallbacks : public BLECharacteristicCallbacks {
   }
 };
 
-class BLE_MACAddressServiceHandler : public BLEServiceHandler {
+class BLEMACAddressServiceHandler : public BLEServiceHandler {
  public:
-  BLE_MACAddressServiceHandler(BLEServer *bleServer)
-      : BLEServiceHandler(bleServer, BLE_MAC_ADDRESS_SERVICE_UUID) {
+  BLEMACAddressServiceHandler(BLEServiceManager *manager)
+      : BLEServiceHandler(manager, BLE_MAC_ADDRESS_SERVICE_UUID) {
     auto *macaddressChar = bleService_->createCharacteristic(
         BLE_MAC_ADDRESS_CHAR_UUID, BLECharacteristic::PROPERTY_READ);
     macaddressChar->addDescriptor(new BLE2902());

@@ -1,3 +1,4 @@
+#pragma once
 #include "BLEServiceHandler.h"
 
 static const char NF_UART_SERVICE_UUID[] =
@@ -35,10 +36,10 @@ class UARTRxCallbacks : public BLECharacteristicCallbacks {
   BLECharacteristic *txChar_;
 };
 
-class BLE_UARTServiceHandler : public BLEServiceHandler {
+class BLEUARTServiceHandler : public BLEServiceHandler {
  public:
-  BLE_UARTServiceHandler(BLEServer *bleServer)
-      : BLEServiceHandler(bleServer, NF_UART_SERVICE_UUID) {
+  BLEUARTServiceHandler(BLEServiceManager *manager)
+      : BLEServiceHandler(manager, NF_UART_SERVICE_UUID) {
     txChar_ = bleService_->createCharacteristic(
         NF_UART_TX_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
     txChar_->addDescriptor(new BLE2902());

@@ -46,12 +46,9 @@ void setup() {
 
   BLEDevice::init(bleDeviceName.c_str());
   bleServiceManager = new BLEServiceManager();
-  bleServiceManager->addServiceHandler(
-      new BLE_IMUServiceHandler(&bleServiceManager->bleServer, *bno), true);
-  bleServiceManager->addServiceHandler(
-      new BLE_MACAddressServiceHandler(&bleServiceManager->bleServer));
-  bleServiceManager->addServiceHandler(
-      new BLE_UARTServiceHandler(&bleServiceManager->bleServer));
+  new BLEIMUServiceHandler(bleServiceManager, bno);
+  new BLEMACAddressServiceHandler(bleServiceManager);
+  new BLEUARTServiceHandler(bleServiceManager);
 
   Serial.print("Starting BLE (device name=");
   Serial.print(bleDeviceName.c_str());
