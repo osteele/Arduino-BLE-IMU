@@ -1,7 +1,7 @@
 # Arduino BLE IMU
 
 This software runs on an ESP32 to publish BNO055 orientation data over a
-Bluetooth Low Energy (BLE) connection, for use with
+Bluetooth Low Energy (BLE) connection, and optionally MQTT/WiFi, for use with
 [osteele/imu-tools](https://github.com/osteele/imu-tools).
 
 ## BLE Services
@@ -9,7 +9,6 @@ Bluetooth Low Energy (BLE) connection, for use with
 The software defines the following BLE services.
 
 ### IMU Service (`509B0001-EBE1-4AA5-BC51-11004B78D5CB`)
-
 
 Characteristics:
 
@@ -81,6 +80,37 @@ using the PlatformIO GUI within the editor.
 It should also be possible to install the code using the [PlatformIO Command
 Line](https://docs.platformio.org/en/latest/installation.html), or by opening
 `main.cpp` in the Arduino IDE and install the Arduino ESP32 board.
+
+## MQTT/WiFi
+
+In order to publish MQTT messages, add the following [ESP
+SPiFFS](https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/storage/spiffs.html)
+files:
+
+`wpa_supplicant.txt`
+
+    ExampleSsid
+    examplePassword
+
+`mpqtt.config`
+
+   m10.cloudmqtt.com
+   1883
+   username
+   password
+
+In the PlatformIO IDE, these can be added to `./data`. Then use Platformio: Run
+Task... > Upload File System Image to copy these to the attached ESP's file
+system. More information, and command-line instructions, are
+[here](https://docs.platformio.org/en/latest/platforms/espressif32.html#uploading-files-to-file-system-spiffs).
+
+The WPA supplicant may contain multiple (ssid, password) pairs, optionally
+separated by a blank line. The device scans for WiFi stations, and a connection
+is attempted to the first listed ssid in the supplicant file that is in this
+scan. If this connection fails, another is not made, so an invalid password for
+discovered ssid will prevent connection to subsequent networks.
+
+Note that the ESP32 can't connect to 5 GHz WiFi networks.
 
 ## Portability
 
