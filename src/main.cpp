@@ -72,7 +72,10 @@ void loop() {
     auto q = bno->getQuat();
     value.setQuaternion(q.w(), q.x(), q.y(), q.z());
     std::vector<uint8_t> payload = value.getPayload();
-    mqttClient.publish(payload);
+
+    if (!mqttClient.publish(payload)) {
+      Serial.println("MQTT publish: failed");
+    }
     nextTxTimeMs = now + MQTT_TX_DELAY;
   }
 }
