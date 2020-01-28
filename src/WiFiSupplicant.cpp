@@ -29,21 +29,20 @@ static const WiFiConfig readSupplicants() {
     return ssidPasswords;
   }
 
-  std::string ssid, password;
-  bool inPassword = false;
+  std::string line, ssid;
   while (file.available()) {
     int c = file.read();
     if (c == '\n') {
-      if (inPassword) {
+      if (ssid.empty()) {
+        ssid = line;
+      } else {
         ssidPasswords.push_back(
-            std::pair<std::string, std::string>(ssid, password));
+            std::pair<std::string, std::string>(ssid, line));
         ssid.clear();
-        password.clear();
       }
-      inPassword = !inPassword;
-      continue;
-    }
-    (inPassword ? password : ssid).append(1, c);
+      line.clear();
+    } else
+      line.append(1, c);
   }
   return ssidPasswords;
 }
@@ -51,8 +50,6 @@ static const WiFiConfig readSupplicants() {
 static const WiFiScanMap scanWiFi() {
   WiFiScanMap ssids;
   int16_t n = WiFi.scanNetworks();
-  Serial.print("WiFi count = ");
-  Serial.println(n);
   for (int16_t i = 0; i < n; ++i) {
     std::string ssid(WiFi.SSID(i).c_str());
     ssids[ssid] = WiFi.encryptionType(i);  // WIFI_AUTH_OPEN
