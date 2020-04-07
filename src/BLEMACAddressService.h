@@ -31,6 +31,7 @@ class BLEMACAddressServiceHandler : public BLEServiceHandler {
     macaddressChar->addDescriptor(new BLE2902());
 
     std::string macAddress = getMACAddress();
+    Serial.printf("MAC address = %s\n", macAddress.c_str());
     macaddressChar->setValue((uint8_t *)macAddress.data(), macAddress.length());
 
     auto *deviceNameChar = bleService_->createCharacteristic(
