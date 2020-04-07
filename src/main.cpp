@@ -20,10 +20,19 @@ static Adafruit_BNO055 bno055;
 static BLEServiceManager* bleServiceManager;
 static MQTTClient mqttClient;
 static WiFiSupplicant wifiSupplicant;
-BNO055Base* bno;
+static BNO055Base* bno;
+
+#ifndef FIREBEETLE
+#define SPICLK 22
+#define SPIDAT 23
+#else
+#define SPICLK 22
+#define SPIDAT 21
+#endif
 
 static BNO055Base* getBNO055() {
-  Wire.begin(23, 22);
+  Serial.printf("SPI = %d %d\n", SPIDAT, SPICLK);
+  Wire.begin(SPIDAT, SPICLK);
 
   if (bno055.begin()) {
     Serial.println("Connected to BNO055");
