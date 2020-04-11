@@ -81,11 +81,13 @@ It should also be possible to install the code using the [PlatformIO Command
 Line](https://docs.platformio.org/en/latest/installation.html), or by opening
 `main.cpp` in the Arduino IDE and install the Arduino ESP32 board.
 
-## MQTT/WiFi
+## MQTT over WiFi
 
-In order to publish MQTT messages, add the following [ESP
-SPiFFS](https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/storage/spiffs.html)
-files:
+In order to publish MQTT messages, create the following files in this project's
+`data` directory. Replace `ExampleSsid` by the name of your WiFi network, and
+`examplePassword` by your WiFi network's password. Replace the `mqtt.config`
+host name, port number, username, and password by the address and credentials of
+a valid MQTT broker.
 
 `wpa_supplicant.txt`
 
@@ -94,21 +96,33 @@ files:
 
 `mpqtt.config`
 
-   m10.cloudmqtt.com
-   1883
-   username
-   password
+    m10.cloudmqtt.com
+    1883
+    username
+    password
 
-In the PlatformIO IDE, these can be added to `./data`. Then use Platformio: Run
-Task... > Upload File System Image to copy these to the attached ESP's file
-system. More information, and command-line instructions, are
+These files need to be downloaded to the ESP32. In PlatformIO IDE:
+
+* Open the vscode [command
+  palette](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_command-palette).
+* Type "Run Task", and select the "Tasks: Run Task" menu item.
+* If the following menu ends with an item "Show all tasks", select this item.
+* Type "file", and select the "Platform IO: Upload File System Image" menu item.
+
+This copies the files the files from `./data` to the attached ESP's
+[SPiFFS](https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/storage/spiffs.html)
+file system.
+
+If you want to use the command-line, instead of the PlatformIO IDE, instructions
+are
 [here](https://docs.platformio.org/en/latest/platforms/espressif32.html#uploading-files-to-file-system-spiffs).
 
-The WPA supplicant may contain multiple (ssid, password) pairs, optionally
-separated by a blank line. The device scans for WiFi stations, and a connection
-is attempted to the first listed ssid in the supplicant file that is in this
-scan. If this connection fails, another is not made, so an invalid password for
-discovered ssid will prevent connection to subsequent networks.
+The WPA supplicant file may contain multiple groups of ssid and password,
+optionally separated by a blank line. Whhen the device boots, it scans for WiFi
+stations, and attempts a connection to the first ssid that is listed in the
+supplicant file that is in this scan. If this connection fails, it does not
+attempt any other connections, so an invalid password for a valid ssid will
+prevent connection to networks that are listed lower in the file.
 
 Note that the ESP32 can't connect to 5 GHz WiFi networks.
 
