@@ -3,8 +3,10 @@
 #define _BLEIMUSERVICE_H
 #include <Adafruit_BNO055.h>
 #include <stdint.h>
+
 #include <cassert>
 #include <vector>
+
 #include "BLEServiceHandler.h"
 #include "BNO055Dummy.h"
 
@@ -22,7 +24,7 @@ enum BLE_IMUFieldBits {
   BLE_IMU_CALIBRATION_FLAG = 0x08,
   BLE_IMU_EULER_FLAG = 0x10,
   BLE_IMU_QUATERNION_FLAG = 0x20,
-  BLE_IMU_LINEAR_FLAG = 0x40,
+  BLE_IMU_LINEAR_ACCEL_FLAG = 0x40,
   BLE_IMU_GRAVITY_FLAG = 0x80
 };
 
@@ -30,12 +32,32 @@ class BLE_IMUMessage {
  public:
   BLE_IMUMessage(unsigned long timestamp) : timestamp_(timestamp){};
 
-  void setQuaternion(float quat[4]) {
+  void setAccelerometer(const imu::Vector<3> &vec) {
+    accel_ = vec;
+    flags_ |= BLE_IMU_ACCEL_FLAG;
+  }
+
+  void setGyroscope(imu::Vector<3> vec) {
+    gyro_ = vec;
+    flags_ |= BLE_IMU_GYRO_FLAG;
+  }
+
+  void setMagnetometer(const imu::Vector<3> &vec) {
+    mag_ = vec;
+    flags_ |= BLE_IMU_MAG_FLAG;
+  }
+
+  void setLinearAcceleration(const imu::Vector<3> &vec) {
+    linear_ = vec;
+    flags_ |= BLE_IMU_LINEAR_ACCEL_FLAG;
+  }
+
+  void setQuaternion(const float quat[4]) {
     memcpy(quat_, quat, sizeof quat_);
     flags_ |= BLE_IMU_QUATERNION_FLAG;
   }
 
-  void setQuaternion(double quat[4]) {
+  void setQuaternion(const double quat[4]) {
     float q[4] = {
         static_cast<float>(quat[0]),
         static_cast<float>(quat[1]),
@@ -51,19 +73,31 @@ class BLE_IMUMessage {
   }
 
   std::vector<uint8_t> getPayload() {
-    uint8_t data[64] = {
+    uint8_t buf[240] = {
         BLE_IMU_MESSAGE_VERSION,
         flags_,
         static_cast<uint8_t>(timestamp_),
         static_cast<uint8_t>(timestamp_ >> 8),
     };
-    uint8_t *p = &data[4];
+    uint8_t *p = &buf[4];
     if (flags_ & BLE_IMU_QUATERNION_FLAG) {
-      assert(p - data + sizeof quat_ <= sizeof data);
+      assert(p - buf + sizeof quat_ <= sizeof buf);
       memcpy(p, quat_, sizeof quat_);
       p += sizeof quat_;
     }
-    std::vector<uint8_t> vec(data, p);
+    if (flags_ & BLE_IMU_ACCEL_FLAG) {
+      p = this->appendVector_(buf, sizeof buf, p, accel_);
+    }
+    if (flags_ & BLE_IMU_GYRO_FLAG) {
+      p = this->appendVector_(buf, sizeof buf, p, gyro_);
+    }
+    if (flags_ & BLE_IMU_MAG_FLAG) {
+      p = this->appendVector_(buf, sizeof buf, p, mag_);
+    }
+    if (flags_ & BLE_IMU_LINEAR_ACCEL_FLAG) {
+      p = this->appendVector_(buf, sizeof buf, p, linear_);
+    }
+    std::vector<uint8_t> vec(buf, p);
     return vec;
   }
 
@@ -71,6 +105,20 @@ class BLE_IMUMessage {
   uint8_t flags_ = 0;
   unsigned long timestamp_;
   float quat_[4];
+  imu::Vector<3> accel_, gyro_, mag_, linear_;
+
+  uint8_t *appendVector_(uint8_t *buf, size_t size, uint8_t *p,
+                         const imu::Vector<3> &vec) {
+    float v[3] = {
+        vec.x(),
+        vec.y(),
+        vec.z(),
+    };
+    assert(p - buf + sizeof v <= size);
+    memcpy(p, v, sizeof v);
+    p += sizeof v;
+    return p;
+  };
 };
 
 // 60 fps, with headroom
@@ -79,6 +127,8 @@ static const int BLE_IMU_TX_DELAY = (1000 - 10) / BLE_IMU_TX_FREQ;
 
 class BLEIMUServiceHandler : public BLEServiceHandler {
  public:
+  const bool INCLUDE_ALL_VALUES = true;
+
   BLEIMUServiceHandler(BLEServiceManager *manager, BNO055Base *sensor)
       : BLEServiceHandler(manager, BLE_IMU_SERVICE_UUID), bno_(sensor) {
     imuSensorValueChar_ = bleService_->createCharacteristic(
@@ -107,11 +157,22 @@ class BLEIMUServiceHandler : public BLEServiceHandler {
         setCalibrationValue();
         imuCalibrationChar_->notify();
       }
-      auto q = bno_->getQuat();
-      BLE_IMUMessage value(now);
-      value.setQuaternion(q.w(), q.x(), q.y(), q.z());
 
-      std::vector<uint8_t> payload = value.getPayload();
+      BLE_IMUMessage message(now);
+      auto quat = bno_->getQuat();
+      message.setQuaternion(quat.w(), quat.x(), quat.y(), quat.z());
+      if (INCLUDE_ALL_VALUES) {
+        message.setAccelerometer(
+            bno_->getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER));
+        message.setGyroscope(
+            bno_->getVector(Adafruit_BNO055::VECTOR_GYROSCOPE));
+        message.setMagnetometer(
+            bno_->getVector(Adafruit_BNO055::VECTOR_MAGNETOMETER));
+        // message.setLinearAcceleration(
+        //     bno_->getVector(Adafruit_BNO055::VECTOR_LINEARACCEL));
+      }
+
+      std::vector<uint8_t> payload = message.getPayload();
       imuSensorValueChar_->setValue(payload.data(), payload.size());
       imuSensorValueChar_->notify();
 

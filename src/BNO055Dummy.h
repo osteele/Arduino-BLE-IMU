@@ -1,13 +1,17 @@
 #pragma once
 #include <Adafruit_BNO055.h>
+
 #include <algorithm>
 #include <cmath>
+
 #include "utils.h"
 
 class BNO055Base {
  public:
   virtual bool begin() = 0;
   // virtual void setExtCrystalUse(bool);
+  virtual imu::Vector<3> getVector(
+      Adafruit_BNO055::adafruit_vector_type_t vector_type) = 0;
   virtual void getCalibration(uint8_t* system, uint8_t* gyro, uint8_t* accel,
                               uint8_t* mag) = 0;
   virtual imu::Quaternion getQuat() = 0;
@@ -19,6 +23,10 @@ class BNO055Adaptor : public BNO055Base {
   BNO055Adaptor(T& bno) : _base(bno) {}
   bool begin() { return _base.begin(); }
   // virtual setExtCrystalUse(bool flag) : {}
+  virtual imu::Vector<3> getVector(
+      Adafruit_BNO055::adafruit_vector_type_t vector_type) {
+    return _base.getVector(vector_type);
+  }
   void getCalibration(uint8_t* system, uint8_t* gyro, uint8_t* accel,
                       uint8_t* mag) {
     _base.getCalibration(system, gyro, accel, mag);
@@ -57,6 +65,10 @@ class BNO055Dummy : public BNO055Base {
     return imu::Quaternion(
         static_cast<double>(quat[0]), static_cast<double>(quat[1]),
         static_cast<double>(quat[2]), static_cast<double>(quat[3]));
+  }
+
+  imu::Vector<3> getVector(Adafruit_BNO055::adafruit_vector_type_t) {
+    return imu::Vector<3>(0, 0, 0);
   }
 
  private:
