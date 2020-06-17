@@ -1,5 +1,6 @@
 #pragma once
 #include <BLE2902.h>
+
 #include "BLEServiceManager.h"
 #include "Config.h"
 #include "utils.h"
@@ -24,7 +25,7 @@ class BLEDeviceNameCallbacks : public BLECharacteristicCallbacks {
 
 class BLEMACAddressServiceHandler : public BLEServiceHandler {
  public:
-  BLEMACAddressServiceHandler(BLEServiceManager *manager)
+  BLEMACAddressServiceHandler(BLEServiceManager &manager)
       : BLEServiceHandler(manager, BLE_MAC_ADDRESS_SERVICE_UUID) {
     auto *macaddressChar = bleService_->createCharacteristic(
         BLE_MAC_ADDRESS_CHAR_UUID, BLECharacteristic::PROPERTY_READ);
@@ -39,6 +40,7 @@ class BLEMACAddressServiceHandler : public BLEServiceHandler {
                                        BLECharacteristic::PROPERTY_WRITE |
                                        BLECharacteristic::PROPERTY_NOTIFY);
     std::string deviceName = Config::getInstance().getBLEDeviceName("");
+    Serial.printf("Device name = %s\n", deviceName.c_str());
     deviceNameChar->setValue((uint8_t *)deviceName.data(), deviceName.length());
     deviceNameChar->setCallbacks(new BLEDeviceNameCallbacks());
   }

@@ -31,7 +31,7 @@ static BNO055Base* bno;
 #endif
 
 static BNO055Base* getBNO055() {
-  Serial.printf("SPI = %d %d\n", SPIDAT, SPICLK);
+  Serial.printf("SPI = {data: %d, clock: %d}\n", SPIDAT, SPICLK);
   Wire.begin(SPIDAT, SPICLK);
 
   if (bno055.begin()) {
@@ -55,13 +55,11 @@ void setup() {
 
   BLEDevice::init(bleDeviceName.c_str());
   bleServiceManager = new BLEServiceManager();
-  new BLEIMUServiceHandler(bleServiceManager, bno);
-  new BLEMACAddressServiceHandler(bleServiceManager);
-  new BLEUARTServiceHandler(bleServiceManager);
+  new BLEIMUServiceHandler(*bleServiceManager, *bno);
+  new BLEMACAddressServiceHandler(*bleServiceManager);
+  new BLEUARTServiceHandler(*bleServiceManager);
 
-  Serial.print("Starting BLE (device name=");
-  Serial.print(bleDeviceName.c_str());
-  Serial.println(")");
+  Serial.printf("Starting BLE (device name=%s)\n", bleDeviceName.c_str());
   bleServiceManager->start();
 }
 

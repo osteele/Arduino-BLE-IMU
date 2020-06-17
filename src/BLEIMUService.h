@@ -110,9 +110,9 @@ class BLE_IMUMessage {
   uint8_t *appendVector_(uint8_t *buf, size_t size, uint8_t *p,
                          const imu::Vector<3> &vec) {
     float v[3] = {
-        vec.x(),
-        vec.y(),
-        vec.z(),
+        static_cast<float>(vec.x()),
+        static_cast<float>(vec.y()),
+        static_cast<float>(vec.z()),
     };
     assert(p - buf + sizeof v <= size);
     memcpy(p, v, sizeof v);
@@ -129,7 +129,7 @@ class BLEIMUServiceHandler : public BLEServiceHandler {
  public:
   const bool INCLUDE_ALL_VALUES = true;
 
-  BLEIMUServiceHandler(BLEServiceManager *manager, BNO055Base *sensor)
+  BLEIMUServiceHandler(BLEServiceManager &manager, BNO055Base &sensor)
       : BLEServiceHandler(manager, BLE_IMU_SERVICE_UUID), bno_(sensor) {
     imuSensorValueChar_ = bleService_->createCharacteristic(
         BLE_IMU_SENSOR_CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
@@ -151,25 +151,24 @@ class BLEIMUServiceHandler : public BLEServiceHandler {
     // Doesn't account for time wraparound
     if (now > nextTxTimeMs_) {
       std::array<uint8_t, 4> calibration;
-      bno_->getCalibration(&calibration[0], &calibration[1], &calibration[2],
-                           &calibration[3]);
+      bno_.getCalibration(&calibration[0], &calibration[1], &calibration[2],
+                          &calibration[3]);
       if (calibration != calibration_) {
         setCalibrationValue();
         imuCalibrationChar_->notify();
       }
 
       BLE_IMUMessage message(now);
-      auto quat = bno_->getQuat();
+      auto quat = bno_.getQuat();
       message.setQuaternion(quat.w(), quat.x(), quat.y(), quat.z());
       if (INCLUDE_ALL_VALUES) {
         message.setAccelerometer(
-            bno_->getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER));
-        message.setGyroscope(
-            bno_->getVector(Adafruit_BNO055::VECTOR_GYROSCOPE));
+            bno_.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER));
+        message.setGyroscope(bno_.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE));
         message.setMagnetometer(
-            bno_->getVector(Adafruit_BNO055::VECTOR_MAGNETOMETER));
+            bno_.getVector(Adafruit_BNO055::VECTOR_MAGNETOMETER));
         // message.setLinearAcceleration(
-        //     bno_->getVector(Adafruit_BNO055::VECTOR_LINEARACCEL));
+        //     bno_.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL));
       }
 
       std::vector<uint8_t> payload = message.getPayload();
@@ -183,14 +182,14 @@ class BLEIMUServiceHandler : public BLEServiceHandler {
  private:
   BLECharacteristic *imuSensorValueChar_;
   BLECharacteristic *imuCalibrationChar_;
-  BNO055Base *bno_;
+  BNO055Base &bno_;
   std::array<uint8_t, 4> calibration_ = {{0, 0, 0, 0}};
   unsigned long nextTxTimeMs_ = 0;
 
   void setCalibrationValue() {
     std::array<uint8_t, 4> calibration;
-    bno_->getCalibration(&calibration[0], &calibration[1], &calibration[2],
-                         &calibration[3]);
+    bno_.getCalibration(&calibration[0], &calibration[1], &calibration[2],
+                        &calibration[3]);
     imuCalibrationChar_->setValue(calibration.data(), calibration.size());
     calibration_ = calibration;
   }

@@ -4,7 +4,9 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <HardwareSerial.h>
+
 #include <algorithm>
+
 #include "BLEServiceHandler.h"
 
 class BLEServiceManager : public BLEServerCallbacks {
@@ -18,11 +20,10 @@ class BLEServiceManager : public BLEServerCallbacks {
 
   uint32_t getConnectedCount() { return bleServer.getConnectedCount(); }
 
-  void addServiceHandler(BLEServiceHandler *handler, bool advertised = false) {
-    serviceHandlers_.push_back(handler);
-    if (advertised) {
-      adv_->addServiceUUID(handler->uuid.c_str());
-    }
+  void addServiceHandler(BLEServiceHandler &handler) {
+    serviceHandlers_.push_back(&handler);
+    Serial.printf("Advertising %s\n", handler.uuid.c_str());
+    adv_->addServiceUUID(handler.uuid.c_str());
   }
 
   void start() {
