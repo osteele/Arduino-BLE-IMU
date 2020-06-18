@@ -62,7 +62,8 @@ void setup() {
   bleServiceManager->start();
 }
 
-static const int MQTT_TX_DELAY = (1000 - 10) / 60;  // 60 fps, with headroom
+static const int MQTT_IMU_TX_FREQ = 60;
+static const int MQTT_TX_DELAY = (1000 - 10) / MQTT_IMU_TX_FREQ;
 static unsigned long nextTxTimeMs = 0;
 
 void loop() {
@@ -71,11 +72,19 @@ void loop() {
   unsigned long now = millis();
   if (bleServiceManager->getConnectedCount() == 0 && mqttClient.connected() &&
       now > nextTxTimeMs) {
-    BLE_IMUMessage value(now);
+    BLE_IMUMessage message(now);
     auto q = imuSensor->getQuat();
-    value.setQuaternion(q.w(), q.x(), q.y(), q.z());
-    std::vector<uint8_t> payload = value.getPayload();
+    message.setQuaternion(q.w(), q.x(), q.y(), q.z());
+    message.setAccelerometer(
+        imuSensor->getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER));
+    message.setGyroscope(
+        imuSensor->getVector(Adafruit_BNO055::VECTOR_GYROSCOPE));
+    message.setMagnetometer(
+        imuSensor->getVector(Adafruit_BNO055::VECTOR_MAGNETOMETER));
+    message.setLinearAcceleration(
+        imuSensor->getVector(Adafruit_BNO055::VECTOR_LINEARACCEL));
 
+    std::vector<uint8_t> payload = message.getPayload();
     if (!mqttClient.publish(payload)) {
       Serial.println("MQTT publish: failed");
     }
