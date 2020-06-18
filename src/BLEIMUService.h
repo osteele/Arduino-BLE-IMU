@@ -167,8 +167,8 @@ class BLEIMUServiceHandler : public BLEServiceHandler {
         message.setGyroscope(bno_.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE));
         message.setMagnetometer(
             bno_.getVector(Adafruit_BNO055::VECTOR_MAGNETOMETER));
-        // message.setLinearAcceleration(
-        //     bno_.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL));
+        message.setLinearAcceleration(
+            bno_.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL));
       }
 
       std::vector<uint8_t> payload = message.getPayload();
