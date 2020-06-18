@@ -20,23 +20,22 @@ static Adafruit_BNO055 bno055;
 static BLEServiceManager* bleServiceManager;
 static MQTTClient mqttClient;
 static WiFiSupplicant wifiSupplicant;
-static BNO055Base* bno;
+static BNO055Base* imuSensor;
 
-#ifndef FIREBEETLE
-#define SPICLK 22
-#define SPIDAT 23
-#else
+#ifdef FIREBEETLE
 #define SPICLK 22
 #define SPIDAT 21
+#else
+#define SPICLK 22
+#define SPIDAT 23
 #endif
 
-static BNO055Base* getBNO055() {
+static BNO055Base* getIMU() {
   Serial.printf("SPI = {data: %d, clock: %d}\n", SPIDAT, SPICLK);
   Wire.begin(SPIDAT, SPICLK);
 
   if (bno055.begin()) {
     Serial.println("Connected to BNO055");
-    bno055.printSensorDetails();
     return new BNO055Adaptor<Adafruit_BNO055>(bno055);
   } else {
     Serial.println("Simulating BNO055");
@@ -51,11 +50,11 @@ void setup() {
 
   std::string bleDeviceName =
       Config::getInstance().getBLEDeviceName(BLE_ADV_NAME);
-  bno = getBNO055();
+  imuSensor = getIMU();
 
   BLEDevice::init(bleDeviceName.c_str());
   bleServiceManager = new BLEServiceManager();
-  new BLEIMUServiceHandler(*bleServiceManager, *bno);
+  new BLEIMUServiceHandler(*bleServiceManager, *imuSensor);
   new BLEMACAddressServiceHandler(*bleServiceManager);
   new BLEUARTServiceHandler(*bleServiceManager);
 
@@ -73,7 +72,7 @@ void loop() {
   if (bleServiceManager->getConnectedCount() == 0 && mqttClient.connected() &&
       now > nextTxTimeMs) {
     BLE_IMUMessage value(now);
-    auto q = bno->getQuat();
+    auto q = imuSensor->getQuat();
     value.setQuaternion(q.w(), q.x(), q.y(), q.z());
     std::vector<uint8_t> payload = value.getPayload();
 
