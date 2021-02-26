@@ -1,8 +1,11 @@
+#include "WiFiSupplicant.h"
+
 #include <SPIFFS.h>
 #include <WiFi.h>
+
 #include <map>
 
-#include "WiFiSupplicant.h"
+unsigned int WIFI_CONNECT_TIMEOUT_MS = 5000;
 
 static const char WPA_SUPPLICANT_FNAME[] = "/wpa_supplicant.txt";
 
@@ -86,12 +89,16 @@ bool WiFiSupplicant::connect() {
   auto ssid = item->first;
   auto password = item->second;
 
-  Serial.printf("Connecting to WiFi %s...", ssid.c_str());
+  Serial.printf("Connecting to WiFi network %s...", ssid.c_str());
 
   WiFi.begin(ssid.c_str(), password.c_str());
   wl_status_t wifi_status;
   const int WIFI_CONTINUE_MASK = (1 << WL_IDLE_STATUS) | (1 << WL_DISCONNECTED);
+  const unsigned int timeout = millis() + WIFI_CONNECT_TIMEOUT_MS;
   while ((1 << (wifi_status = WiFi.status())) & WIFI_CONTINUE_MASK) {
+    if (millis() > timeout) {
+      break;
+    }
     Serial.print(".");
     delay(500);
   }
